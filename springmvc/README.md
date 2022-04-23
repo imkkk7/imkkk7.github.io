@@ -147,3 +147,154 @@ public class HelloController {
 9.DispatcherServlet根据视图解析器解析的试图结果，调用具体的视图
 
 10.将视图呈现出来
+
+[![LfsF2R.png](https://s1.ax1x.com/2022/04/23/LfsF2R.png)](https://imgtu.com/i/LfsF2R)
+
+## 注解@Controller
+
+- @Controller注解类型用于声明Spring类的实例是一个控制器（在讲IOC时还提到了另外3个注解）；
+
+- Spring可以使用扫描机制来找到应用程序中所有基于注解的控制器类，为了保证Spring能找到你的控制器，需要在配置文件中声明组件扫描。
+
+- ```xml
+  <!-- 自动扫描指定的包，下面所有注解类交给IOC容器管理 -->
+  <context:component-scan base-package="com.kk.controller"/>
+  ```
+
+- 增加一个ControllerTest2类，使用注解实现；
+
+  ```java
+  //@Controller注解的类会自动添加到Spring上下文中
+  @Controller
+  public class ControllerTest2{
+  
+     //映射访问路径
+     @RequestMapping("/t2")
+     public String index(Model model){
+         //Spring MVC会自动实例化一个Model对象用于向视图中传值
+         model.addAttribute("msg", "ControllerTest2");
+         //返回视图位置
+         return "test";
+    }
+  
+  }
+  ```
+
+## RequestMapping
+
+- @RequestMapping注解用于映射url到控制器类或一个特定的处理程序方法。可用于类或方法上。用于类上，表示类中的所有响应请求的方法都是以该地址作为父路径。
+
+- 只注解在方法上面
+
+  ```java
+  @Controller
+  public class TestController {
+     @RequestMapping("/h1")
+     public String test(){
+         return "test";
+    }
+  }
+  ```
+
+访问路径：http://localhost:8080/h1
+
+- 同时注解类与方法
+
+  ```java
+  @Controller
+  @RequestMapping("/admin")
+  public class TestController {
+     @RequestMapping("/h1")
+     public String test(){
+         return "test";
+    }
+  }
+  ```
+
+  访问路径：http://localhost:8080admin/h1  , 需要先指定类的路径再指定方法的路径；
+
+# RestFul 风格
+
+## **概念**
+
+Restful就是一个资源定位及资源操作的风格。不是标准也不是协议，只是一种风格。基于这个风格设计的软件可以更简洁，更有层次，更易于实现缓存等机制。
+
+## **功能**
+
+资源：互联网所有的事物都可以被抽象为资源
+
+资源操作：使用POST、DELETE、PUT、GET，使用不同方法对资源进行操作。
+
+分别对应 添加、 删除、修改、查询。
+
+## **传统方式操作资源**
+
+通过不同的参数来实现不同的效果！方法单一，post 和 get
+
+​	http://127.0.0.1/item/queryItem.action?id=1 查询,GET
+
+​	http://127.0.0.1/item/saveItem.action 新增,POST
+
+​	http://127.0.0.1/item/updateItem.action 更新,POST
+
+​	http://127.0.0.1/item/deleteItem.action?id=1 删除,GET或POST
+
+## **使用RESTful操作资源** 
+
+可以通过不同的请求方式来实现不同的效果！如下：请求地址一样，但是功能可以不同！
+
+​	http://127.0.0.1/item/1 查询,GET
+
+​	http://127.0.0.1/item 新增,POST
+
+​	http://127.0.0.1/item 更新,PUT
+
+​	http://127.0.0.1/item/1 删除,DELETE
+
+原来的：
+
+```java
+@Controller
+public class RestFulController {
+    @RequestMapping("/add")
+    public String test1(int a, int b, Model model){
+        int res = a +b;
+        model.addAttribute("msg","结果为"+res);
+        return "test";
+    }
+}
+```
+
+http://localhost:8080/add?a=1&b=2
+
+RESTful风格：
+
+```java
+@Controller
+public class RestFulController {
+
+    //原来的http://localhost:8080/add?a=1&b=2
+    @RequestMapping("/add/{a}/{b}")
+    public String test1(@PathVariable int a, @PathVariable int b, Model model){
+        int res = a +b;
+        model.addAttribute("msg","结果为"+res);
+        return "test";
+    }
+}
+```
+
+**所有的地址栏请求默认都会是 HTTP GET 类型的。**
+
+方法级别的注解变体有如下几个：组合注解
+
+```
+@GetMapping
+@PostMapping
+@PutMapping
+@DeleteMapping
+@PatchMapping
+```
+
+@GetMapping 是一个组合注解，平时使用的会比较多！
+
+它所扮演的是 @RequestMapping(method =RequestMethod.GET) 的一个快捷方式。
