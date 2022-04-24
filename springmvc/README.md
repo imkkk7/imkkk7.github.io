@@ -298,3 +298,159 @@ public class RestFulController {
 @GetMapping 是一个组合注解，平时使用的会比较多！
 
 它所扮演的是 @RequestMapping(method =RequestMethod.GET) 的一个快捷方式。
+
+## ServletAPI
+
+通过设置ServletAPI , 不需要视图解析器 .
+
+1、通过HttpServletResponse进行输出
+
+2、通过HttpServletResponse实现重定向
+
+3、通过HttpServletResponse实现转发
+
+~~~java
+@Controller
+public class ResultGo {
+
+   @RequestMapping("/result/t1")
+   public void test1(HttpServletRequest req, HttpServletResponse rsp) throws IOException {
+       rsp.getWriter().println("Hello,Spring BY servlet API");
+  }
+
+   @RequestMapping("/result/t2")
+   public void test2(HttpServletRequest req, HttpServletResponse rsp) throws IOException {
+       rsp.sendRedirect("/index.jsp");
+  }
+
+   @RequestMapping("/result/t3")
+   public void test3(HttpServletRequest req, HttpServletResponse rsp) throws Exception {
+       //转发
+       req.setAttribute("msg","/result/t3");
+       req.getRequestDispatcher("/WEB-INF/jsp/test.jsp").forward(req,rsp);
+  }
+
+}
+~~~
+
+## 通过SpringMVC来实现转发和重定向-无视图解析器
+
+测试前，需要将视图解析器注释掉
+
+~~~java
+@Controller
+public class ResultSpringMVC {
+   @RequestMapping("/rsm/t1")
+   public String test1(){
+       //转发
+       return "/index.jsp";
+  }
+
+   @RequestMapping("/rsm/t2")
+   public String test2(){
+       //转发二
+       return "forward:/index.jsp";
+  }
+
+   @RequestMapping("/rsm/t3")
+   public String test3(){
+       //重定向
+       return "redirect:/index.jsp";
+  }
+}
+~~~
+
+## **通过SpringMVC来实现转发和重定向 - 有视图解析器**
+
+重定向 , 不需要视图解析器 , 本质就是重新请求一个新地方嘛 , 所以注意路径问题.
+
+可以重定向到另外一个请求实现 .
+
+~~~java
+@Controller
+public class ResultSpringMVC2 {
+   @RequestMapping("/rsm2/t1")
+   public String test1(){
+       //转发
+       return "test";
+  }
+
+   @RequestMapping("/rsm2/t2")
+   public String test2(){
+       //重定向
+       return "redirect:/index.jsp";
+       //return "redirect:hello.do"; //hello.do为另一个请求/
+  }
+
+}
+~~~
+
+## 显示数据
+
+有三种方法：
+
+第一种：通过ModelAndView
+
+我们前面一直都是如此 . 就不过多解释
+
+第二种：通过ModelMap
+
+第三种：通过Model
+
+~~~java
+    //localhost:8080/user/t1?username=xxx;
+    @GetMapping("/t1")
+    public String test1(@RequestParam("username") String name, Model model){
+        //1.接受前端参数
+        System.out.println("接收到前端的参数为"+name);
+        //2.将返回的结果传递给前端
+        model.addAttribute("msg",name);
+        //3.试图跳转
+        return "test";
+    }
+    //前端接收的是一个对象：id,name,age
+    /*
+    * 1.接收前端用户传递的参数，判断参数的名字，假设名字直接在方法上可以直接使用
+    * 2.假设传递的是一个对象User，匹配User对象中的字段名，如果名字一致则ok，否则匹配不到
+    * */
+    @GetMapping("/t2")
+    public String test2(User user){
+        System.out.println(user);
+        return "test";
+    }
+~~~
+
+### 对比
+
+简单来说使用区别就是：
+
+```
+Model 只有寥寥几个方法只适合用于储存数据，简化了新手对于Model对象的操作和理解；
+
+ModelMap 继承了 LinkedMap ，除了实现了自身的一些方法，同样的继承 LinkedMap 的方法和特性；
+
+ModelAndView 可以在储存数据的同时，可以进行设置返回的逻辑视图，进行控制展示层的跳转。
+```
+
+当然更多的以后开发考虑的更多的是性能和优化，就不能单单仅限于此的了解。
+
+## 乱码问题
+
+SpringMVC给我们提供了一个过滤器 , 可以在web.xml中配置 .
+
+修改了xml文件需要重启服务器！
+
+```xml
+<filter>
+   <filter-name>encoding</filter-name>
+   <filter-class>org.springframework.web.filter.CharacterEncodingFilter</filter-class>
+   <init-param>
+       <param-name>encoding</param-name>
+       <param-value>utf-8</param-value>
+   </init-param>
+</filter>
+<filter-mapping>
+   <filter-name>encoding</filter-name>
+   <url-pattern>/*</url-pattern>
+</filter-mapping>
+```
