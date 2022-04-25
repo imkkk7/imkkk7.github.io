@@ -299,6 +299,8 @@ public class RestFulController {
 
 它所扮演的是 @RequestMapping(method =RequestMethod.GET) 的一个快捷方式。
 
+# 数据处理及跳转
+
 ## ServletAPI
 
 通过设置ServletAPI , 不需要视图解析器 .
@@ -454,3 +456,337 @@ SpringMVC给我们提供了一个过滤器 , 可以在web.xml中配置 .
    <url-pattern>/*</url-pattern>
 </filter-mapping>
 ```
+
+# JSON
+
+## 概念
+
+- JSON(JavaScript Object Notation, JS 对象标记) 是一种轻量级的数据交换格式，目前使用特别广泛。
+- 采用完全独立于编程语言的**文本格式**来存储和表示数据。
+- 简洁和清晰的层次结构使得 JSON 成为理想的数据交换语言。
+- 易于人阅读和编写，同时也易于机器解析和生成，并有效地提升网络传输效率。
+
+在 JavaScript 语言中，一切都是对象。因此，任何JavaScript 支持的类型都可以通过 JSON 来表示，例如字符串、数字、对象、数组等。看看他的要求和语法格式：
+
+- 对象表示为键值对，数据由逗号分隔
+- 花括号保存对象
+- 方括号保存数组
+
+**JSON 键值对**是用来保存 JavaScript 对象的一种方式，和 JavaScript 对象的写法也大同小异，键/值对组合中的键名写在前面并用双引号 "" 包裹，使用冒号 : 分隔，然后紧接着值：
+
+```xml
+{"name": "QinJiang"}
+{"age": "3"}
+{"sex": "男"}
+```
+
+可以这么理解：
+
+JSON 是 JavaScript 对象的字符串表示法，它使用文本表示一个 JS 对象的信息，本质是一个字符串。
+
+```java
+var obj = {a: 'Hello', b: 'World'}; //这是一个对象，注意键名也是可以使用引号包裹的
+var json = '{"a": "Hello", "b": "World"}'; //这是一个 JSON 字符串，本质是一个字符串
+```
+
+
+
+**JSON 和 JavaScript 对象互转**
+
+要实现从JSON字符串转换为JavaScript 对象，使用 JSON.parse() 方法：
+
+```java
+var obj = JSON.parse('{"a": "Hello", "b": "World"}');
+//结果是 {a: 'Hello', b: 'World'}
+```
+
+要实现从JavaScript 对象转换为JSON字符串，使用 JSON.stringify() 方法：
+
+```java
+var json = JSON.stringify({a: 'Hello', b: 'World'});
+//结果是 '{"a": "Hello", "b": "World"}'
+```
+
+## 使用JSON
+
+需要导入的依赖
+
+
+
+~~~xml
+<dependency>
+   <groupId>com.fasterxml.jackson.core</groupId>
+   <artifactId>jackson-databind</artifactId>
+   <version>2.9.8</version>
+</dependency>
+~~~
+
+配置SpringMVC需要的配置
+
+web.xml
+
+~~~xml
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_4_0.xsd"
+        version="4.0">
+
+   <!--1.注册servlet-->
+   <servlet>
+       <servlet-name>SpringMVC</servlet-name>
+       <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+       <!--通过初始化参数指定SpringMVC配置文件的位置，进行关联-->
+       <init-param>
+           <param-name>contextConfigLocation</param-name>
+           <param-value>classpath:springmvc-servlet.xml</param-value>
+       </init-param>
+       <!-- 启动顺序，数字越小，启动越早 -->
+       <load-on-startup>1</load-on-startup>
+   </servlet>
+
+   <!--所有请求都会被springmvc拦截 -->
+   <servlet-mapping>
+       <servlet-name>SpringMVC</servlet-name>
+       <url-pattern>/</url-pattern>
+   </servlet-mapping>
+
+   <filter>
+       <filter-name>encoding</filter-name>
+       <filter-class>org.springframework.web.filter.CharacterEncodingFilter</filter-class>
+       <init-param>
+           <param-name>encoding</param-name>
+           <param-value>utf-8</param-value>
+       </init-param>
+   </filter>
+   <filter-mapping>
+       <filter-name>encoding</filter-name>
+       <url-pattern>/</url-pattern>
+   </filter-mapping>
+
+</web-app>
+~~~
+
+springmvc-servlet.xml
+
+~~~xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:context="http://www.springframework.org/schema/context"
+      xmlns:mvc="http://www.springframework.org/schema/mvc"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context
+       https://www.springframework.org/schema/context/spring-context.xsd
+       http://www.springframework.org/schema/mvc
+       https://www.springframework.org/schema/mvc/spring-mvc.xsd">
+
+   <!-- 自动扫描指定的包，下面所有注解类交给IOC容器管理 -->
+   <context:component-scan base-package="com.kuang.controller"/>
+
+   <!-- 视图解析器 -->
+   <bean class="org.springframework.web.servlet.view.InternalResourceViewResolver"
+         id="internalResourceViewResolver">
+       <!-- 前缀 -->
+       <property name="prefix" value="/WEB-INF/jsp/" />
+       <!-- 后缀 -->
+       <property name="suffix" value=".jsp" />
+   </bean>
+
+</beans>
+~~~
+
+出现乱码的解决办法：
+
+```java
+//produces:指定响应体返回类型和编码
+@RequestMapping(value = "/json1",produces = "application/json;charset=utf-8")
+```
+
+代码：
+
+```java
+@Controller
+public class UserController {
+    //produces:指定响应体返回类型和编码
+    @RequestMapping(value = "/j1",produces = "application/json;charset=utf-8")
+    @ResponseBody//加入该注解，它就不会走视图解析器，会直接返回一个字符串,也可以将类上方的Controller改成RestController
+    public String json1() throws JsonProcessingException {
+        ObjectMapper mapper = new ObjectMapper();
+        User user = new User("KK", 18, "男");
+        String string = mapper.writeValueAsString(user);
+        return  string;
+    }
+}
+```
+
+乱码的统一解决：
+
+在springmvc-servlet.xml中加入
+
+~~~xml
+<mvc:annotation-driven>
+   <mvc:message-converters register-defaults="true">
+       <bean class="org.springframework.http.converter.StringHttpMessageConverter">
+           <constructor-arg value="UTF-8"/>
+       </bean>
+       <bean class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter">
+           <property name="objectMapper">
+               <bean class="org.springframework.http.converter.json.Jackson2ObjectMapperFactoryBean">
+                   <property name="failOnEmptyBeans" value="false"/>
+               </bean>
+           </property>
+       </bean>
+   </mvc:message-converters>
+</mvc:annotation-driven>
+~~~
+
+输出时间：
+
+使用时间戳：
+
+~~~java
+@RestController
+public class UserController {
+    //produces:指定响应体返回类型和编码
+    @RequestMapping(value = "/j1",produces = "application/json;charset=utf-8")
+    public String json1() throws JsonProcessingException {
+        ObjectMapper mapper = new ObjectMapper();
+        Date date = new Date();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        return  mapper.writeValueAsString(sdf.format(date));
+    }
+}
+~~~
+
+不使用时间戳：
+
+~~~java
+@RestController
+public class UserController {
+    //produces:指定响应体返回类型和编码
+    @RequestMapping(value = "/j1",produces = "application/json;charset=utf-8")
+    public String json1() throws JsonProcessingException {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS,false);
+        Date date = new Date();
+        return mapper.writeValueAsString(date);
+    }
+}
+~~~
+
+为了方便使用，实现复用，也可以写成工具类
+
+~~~java
+public class jsonutil    {
+
+    public static String getJson(Object object) {
+        return getJson(object,"yyyy-MM-dd HH:mm:ss");
+    }
+
+    public static String getJson(Object object,String dateFormat) {
+        ObjectMapper mapper = new ObjectMapper();
+        //不使用时间差的方式
+        mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
+        //自定义日期格式对象
+        SimpleDateFormat sdf = new SimpleDateFormat(dateFormat);
+        //指定日期格式
+        mapper.setDateFormat(sdf);
+        try {
+            return mapper.writeValueAsString(object);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+}
+~~~
+
+# FastJson
+
+需要导入的依赖
+
+~~~xml
+<dependency>
+   <groupId>com.alibaba</groupId>
+   <artifactId>fastjson</artifactId>
+   <version>1.2.60</version>
+</dependency>
+~~~
+
+fastjson 三个主要的类：
+
+**JSONObject  代表 json 对象** 
+
+- JSONObject实现了Map接口, 猜想 JSONObject底层操作是由Map实现的。
+- JSONObject对应json对象，通过各种形式的get()方法可以获取json对象中的数据，也可利用诸如size()，isEmpty()等方法获取"键：值"对的个数和判断是否为空。其本质是通过实现Map接口并调用接口中的方法完成的。
+
+**JSONArray  代表 json 对象数组**
+
+- 内部是有List接口中的方法来完成操作的。
+
+**JSON代表 JSONObject和JSONArray的转化**
+
+- JSON类源码分析与使用
+- 仔细观察这些方法，主要是实现json对象，json对象数组，javabean对象，json字符串之间的相互转化。
+
+~~~java
+package com.kk.controller;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.kk.Utils.jsonutil;
+import com.kk.pojo.User;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
+@RestController
+public class UserController {
+    @RequestMapping("/j1")
+    public String json2() throws JsonProcessingException {
+        //创建一个对象
+        User user1 = new User("KK1", 3, "男");
+        User user2 = new User("KK2", 3, "男");
+        User user3 = new User("KK3", 3, "男");
+        User user4 = new User("KK4", 3, "男");
+        List<User> list = new ArrayList<User>();
+        list.add(user1);
+        list.add(user2);
+        list.add(user3);
+        list.add(user4);
+
+        //将我们的对象解析成为json格式
+        String str = JSON.toJSONString(list);
+        System.out.println("*******Java对象 转 JSON字符串*******");
+        String str1 = JSON.toJSONString(list);
+        System.out.println("JSON.toJSONString(list)==>"+str1);
+        String str2 = JSON.toJSONString(user1);
+        System.out.println("JSON.toJSONString(user1)==>"+str2);
+
+        System.out.println("\n****** JSON字符串 转 Java对象*******");
+        User jp_user1=JSON.parseObject(str2,User.class);
+        System.out.println("JSON.parseObject(str2,User.class)==>"+jp_user1);
+
+        System.out.println("\n****** Java对象 转 JSON对象 ******");
+        JSONObject jsonObject1 = (JSONObject) JSON.toJSON(user2);
+        System.out.println("(JSONObject) JSON.toJSON(user2)==>"+jsonObject1.getString("name"));
+
+        System.out.println("\n****** JSON对象 转 Java对象 ******");
+        User to_java_user = JSON.toJavaObject(jsonObject1, User.class);
+        System.out.println("JSON.toJavaObject(jsonObject1, User.class)==>"+to_java_user);
+        return str;
+    }
+}
+~~~
+
