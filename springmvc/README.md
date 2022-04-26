@@ -790,3 +790,399 @@ public class UserController {
 }
 ~~~
 
+# SSM整合
+
+## 底层
+
+web.xml
+
+~~~xml
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_4_0.xsd"
+         version="4.0">
+
+  <!--DispatcherServlet-->
+  <servlet>
+    <servlet-name>DispatcherServlet</servlet-name>
+    <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+    <init-param>
+      <param-name>contextConfigLocation</param-name>
+      <!--一定要注意:我们这里加载的是总的配置文件，之前被这里坑了！-->
+      <param-value>classpath:applicationContext.xml</param-value>
+    </init-param>
+    <load-on-startup>1</load-on-startup>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>DispatcherServlet</servlet-name>
+    <url-pattern>/</url-pattern>
+  </servlet-mapping>
+
+  <!--encodingFilter-->
+  <filter>
+    <filter-name>encodingFilter</filter-name>
+    <filter-class>
+      org.springframework.web.filter.CharacterEncodingFilter
+    </filter-class>
+    <init-param>
+      <param-name>encoding</param-name>
+      <param-value>utf-8</param-value>
+    </init-param>
+  </filter>
+  <filter-mapping>
+    <filter-name>encodingFilter</filter-name>
+    <url-pattern>/*</url-pattern>
+  </filter-mapping>
+
+  <!--Session过期时间-->
+  <session-config>
+    <session-timeout>15</session-timeout>
+  </session-config>
+
+</web-app>
+~~~
+
+applicationContext.xml
+
+~~~xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <import resource="spring-dao.xml"/>
+    <import resource="spring-service.xml"/>
+    <import resource="spring-mvc.xml"/>
+
+</beans>
+~~~
+
+database.properties
+
+~~~xml
+jdbc.driver=com.microsoft.sqlserver.jdbc.SQLServerDriver
+jdbc.url=jdbc:sqlserver://localhost;database=mybaits
+jdbc.username=sa
+jdbc.password=123
+~~~
+
+Mybatis-config.xml
+
+~~~xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+    <typeAliases>
+        <package name="com.kk.pojo"/>
+    </typeAliases>
+    <mappers>
+        <mapper resource="com/kk/mapper/BookMapper.xml"></mapper>
+    </mappers>
+</configuration>
+
+~~~
+
+spring-dao.xml
+
+~~~xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context
+       https://www.springframework.org/schema/context/spring-context.xsd">
+    <context:property-placeholder location="classpath:database.properties"/>
+    <bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource">
+        <property name="driverClass" value="${jdbc.driver}"/>
+        <property name="jdbcUrl" value="${jdbc.url}"/>
+        <property name="user" value="${jdbc.username}"/>
+        <property name="password" value="${jdbc.password}"/>
+        <property name="maxPoolSize" value="30"/>
+        <property name="minPoolSize" value="10"/>
+        <property name="autoCommitOnClose" value="false"/>
+        <property name="checkoutTimeout" value="10000"/>
+        <property name="acquireRetryAttempts" value="2"/>
+    </bean>
+    <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="dataSource"/>
+        <property name="configLocation" value="classpath:mybatis-config.xml"/>
+    </bean>
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="sqlSessionFactoryBeanName" value="sqlSessionFactory"/>
+        <property name="basePackage" value="com.kk.mapper"/>
+    </bean>
+
+</beans>
+~~~
+
+spring-service.xml
+
+~~~xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+   http://www.springframework.org/schema/beans/spring-beans.xsd
+   http://www.springframework.org/schema/context
+   http://www.springframework.org/schema/context/spring-context.xsd">
+    <context:component-scan base-package="com.kk.service" />
+    <bean id="BookServiceImpl" class="com.kk.service.BookServiceImpl">
+        <property name="bookMapper" ref="bookMapper"/>
+    </bean>
+    <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="dataSource" />
+    </bean>
+
+</beans>
+~~~
+
+spring-mvc.xml
+
+~~~xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+   http://www.springframework.org/schema/beans/spring-beans.xsd
+   http://www.springframework.org/schema/context
+   http://www.springframework.org/schema/context/spring-context.xsd
+   http://www.springframework.org/schema/mvc
+   https://www.springframework.org/schema/mvc/spring-mvc.xsd">
+
+    <mvc:annotation-driven />
+
+    <mvc:default-servlet-handler/>
+
+    <bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <property name="viewClass" value="org.springframework.web.servlet.view.JstlView" />
+        <property name="prefix" value="/" />
+        <property name="suffix" value=".jsp" />
+    </bean>
+
+    <context:component-scan base-package="com.kk.controller" />
+
+</beans>
+~~~
+
+## 后端
+
+Controller
+
+~~~java
+package com.kk.controller;
+
+import com.kk.pojo.Books;
+import com.kk.service.BookService;
+import com.kk.service.BookServiceImpl;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+
+import java.util.List;
+
+@Controller
+@RequestMapping("/book")
+public class BookController {
+    //controller调用service层
+    @Autowired
+    @Qualifier("BookServiceImpl")
+    private BookService bookService = new BookServiceImpl();
+    //查询全部的书籍，并且返回到一个书籍展示页面
+    @RequestMapping("/allBook")
+    public String list(Model model){
+        List<Books> list = bookService.queryAllBook();
+        model.addAttribute("list",list);
+        return "allBook";
+    }
+    @RequestMapping("/toAddBook")
+    public String toAddPaper() {
+        return "addBook";
+    }
+    @RequestMapping("/addBook")
+    public String addPaper(Books books) {
+        System.out.println(books);
+        bookService.addBook(books);
+        return "redirect:/book/allBook";
+    }
+    @RequestMapping("/del/{bookId}")
+    public String deleteBook(@PathVariable("bookId") int id) {
+        bookService.deleteBookById(id);
+        return "redirect:/book/allBook";
+    }
+    @RequestMapping("/toUpdateBook")
+    public String toUpdateBook(Model model, int id) {
+        Books books = bookService.queryBookById(id);
+        System.out.println(books);
+        model.addAttribute("book",books );
+        return "updateBook";
+    }
+
+    @RequestMapping("/updateBook")
+    public String updateBook(Model model, Books book) {
+        System.out.println(book);
+        bookService.updateBook(book);
+        Books books = bookService.queryBookById(book.getBookID());
+        model.addAttribute("books", books);
+        return "redirect:/book/allBook";
+    }
+}
+
+~~~
+
+## 前端
+
+allBook.jsp
+
+~~~xml
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<html>
+<head>
+    <title>书籍列表</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 引入 Bootstrap -->
+    <link href="https://cdn.bootcss.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+
+<div class="container">
+
+    <div class="row clearfix">
+        <div class="col-md-12 column">
+            <div class="page-header">
+                <h1>
+                    <small>书籍列表 —— 显示所有书籍</small>
+                </h1>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4 column">
+            <a class="btn btn-primary" href="${pageContext.request.contextPath}/book/toAddBook">新增</a>
+        </div>
+    </div>
+
+    <div class="row clearfix">
+        <div class="col-md-12 column">
+            <table class="table table-hover table-striped">
+                <thead>
+                <tr>
+                    <th>书籍编号</th>
+                    <th>书籍名字</th>
+                    <th>书籍数量</th>
+                    <th>书籍详情</th>
+                    <th>操作</th>
+                </tr>
+                </thead>
+
+                <tbody>
+                <c:forEach var="book" items="${requestScope.get('list')}">
+                    <tr>
+                        <td>${book.getBookID()}</td>
+                        <td>${book.getBookName()}</td>
+                        <td>${book.getBookCounts()}</td>
+                        <td>${book.getDetail()}</td>
+                        <td>
+                            <a href="${pageContext.request.contextPath}/book/toUpdateBook?id=${book.getBookID()}">更改</a> |
+                            <a href="${pageContext.request.contextPath}/book/del/${book.getBookID()}">删除</a>
+                        </td>
+                    </tr>
+                </c:forEach>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+~~~
+
+update.jsp
+
+~~~xml
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<html>
+<head>
+    <title>修改信息</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 引入 Bootstrap -->
+    <link href="https://cdn.bootcss.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="container">
+
+    <div class="row clearfix">
+        <div class="col-md-12 column">
+            <div class="page-header">
+                <h1>
+                    <small>修改信息</small>
+                </h1>
+            </div>
+        </div>
+    </div>
+
+    <form action="${pageContext.request.contextPath}/book/updateBook" method="post">
+        <input type="hidden" name="bookID" value="${book.getBookID()}"/>
+        书籍名称：<input type="text" name="bookName" value="${book.getBookName()}"/>
+        书籍数量：<input type="text" name="bookCounts" value="${book.getBookCounts()}"/>
+        书籍详情：<input type="text" name="detail" value="${book.getDetail() }"/>
+        <input type="submit" value="提交"/>
+    </form>
+
+</div>
+~~~
+
+addBook.jsp
+
+~~~xml
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+
+<html>
+<head>
+    <title>新增书籍</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 引入 Bootstrap -->
+    <link href="https://cdn.bootcss.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="container">
+
+    <div class="row clearfix">
+        <div class="col-md-12 column">
+            <div class="page-header">
+                <h1>
+                    <small>新增书籍</small>
+                </h1>
+            </div>
+        </div>
+    </div>
+    <form action="${pageContext.request.contextPath}/book/addBook" method="post">
+        书籍名称：<input type="text" name="bookName"><br><br><br>
+        书籍数量：<input type="text" name="bookCounts"><br><br><br>
+        书籍详情：<input type="text" name="detail"><br><br><br>
+        <input type="submit" value="添加">
+    </form>
+
+</div>
+~~~
+
+即可实现最基本的图书管理
+
+[![LHOKds.png](https://s1.ax1x.com/2022/04/26/LHOKds.png)](https://imgtu.com/i/LHOKds)
+
+[![LHOUeJ.png](https://s1.ax1x.com/2022/04/26/LHOUeJ.png)](https://imgtu.com/i/LHOUeJ)
+
+[![LHOBJx.png](https://s1.ax1x.com/2022/04/26/LHOBJx.png)](https://imgtu.com/i/LHOBJx)
