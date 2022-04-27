@@ -1,6 +1,6 @@
 # **SpringMVC**
 
-## **概述**
+## 概述
 
 SpringMVC是一个Java开源框架，是Spring Framework的一个独立模块。
 
@@ -215,11 +215,11 @@ public class HelloController {
 
 # RestFul 风格
 
-## **概念**
+## 概念
 
 Restful就是一个资源定位及资源操作的风格。不是标准也不是协议，只是一种风格。基于这个风格设计的软件可以更简洁，更有层次，更易于实现缓存等机制。
 
-## **功能**
+## 功能
 
 资源：互联网所有的事物都可以被抽象为资源
 
@@ -227,7 +227,7 @@ Restful就是一个资源定位及资源操作的风格。不是标准也不是�
 
 分别对应 添加、 删除、修改、查询。
 
-## **传统方式操作资源**
+## 传统方式操作资源
 
 通过不同的参数来实现不同的效果！方法单一，post 和 get
 
@@ -239,7 +239,7 @@ Restful就是一个资源定位及资源操作的风格。不是标准也不是�
 
 ​	http://127.0.0.1/item/deleteItem.action?id=1 删除,GET或POST
 
-## **使用RESTful操作资源** 
+## 使用RESTful操作资源 
 
 可以通过不同的请求方式来实现不同的效果！如下：请求地址一样，但是功能可以不同！
 
@@ -362,7 +362,7 @@ public class ResultSpringMVC {
 }
 ~~~
 
-## **通过SpringMVC来实现转发和重定向 - 有视图解析器**
+## 通过SpringMVC来实现转发和重定向 - 有视图解析器
 
 重定向 , 不需要视图解析器 , 本质就是重新请求一个新地方嘛 , 所以注意路径问题.
 
@@ -1038,7 +1038,18 @@ public class BookController {
         return "redirect:/book/allBook";
     }
 }
-
+    @RequestMapping("/queryBook")
+    public String queryBook(String queryBookName, Model model){
+        Books books = bookService.queryBookByName(queryBookName);
+        List<Books> list = new ArrayList<Books>();
+        list.add(books);
+        if(books==null){
+            list = bookService.queryAllBook();
+            model.addAttribute("error","未查询到该书籍");
+        }
+        model.addAttribute("list",list);
+        return "allBook";
+    }
 ~~~
 
 ## 前端
@@ -1048,63 +1059,33 @@ allBook.jsp
 ~~~xml
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+
 <html>
 <head>
-    <title>书籍列表</title>
+    <title>新增书籍</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- 引入 Bootstrap -->
     <link href="https://cdn.bootcss.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
-
 <div class="container">
 
     <div class="row clearfix">
-        <div class="col-md-12 column">
+        <div class="col-md-3 column">
             <div class="page-header">
                 <h1>
-                    <small>书籍列表 —— 显示所有书籍</small>
+                    <small>新增书籍</small>
                 </h1>
             </div>
         </div>
     </div>
+    <form action="${pageContext.request.contextPath}/book/addBook" method="post">
+        书籍名称：<input type="text" name="bookName"><br><br><br>
+        书籍数量：<input type="text" name="bookCounts"><br><br><br>
+        书籍详情：<input type="text" name="detail"><br><br><br>
+        <input type="submit" value="添加">
+    </form>
 
-    <div class="row">
-        <div class="col-md-4 column">
-            <a class="btn btn-primary" href="${pageContext.request.contextPath}/book/toAddBook">新增</a>
-        </div>
-    </div>
-
-    <div class="row clearfix">
-        <div class="col-md-12 column">
-            <table class="table table-hover table-striped">
-                <thead>
-                <tr>
-                    <th>书籍编号</th>
-                    <th>书籍名字</th>
-                    <th>书籍数量</th>
-                    <th>书籍详情</th>
-                    <th>操作</th>
-                </tr>
-                </thead>
-
-                <tbody>
-                <c:forEach var="book" items="${requestScope.get('list')}">
-                    <tr>
-                        <td>${book.getBookID()}</td>
-                        <td>${book.getBookName()}</td>
-                        <td>${book.getBookCounts()}</td>
-                        <td>${book.getDetail()}</td>
-                        <td>
-                            <a href="${pageContext.request.contextPath}/book/toUpdateBook?id=${book.getBookID()}">更改</a> |
-                            <a href="${pageContext.request.contextPath}/book/del/${book.getBookID()}">删除</a>
-                        </td>
-                    </tr>
-                </c:forEach>
-                </tbody>
-            </table>
-        </div>
-    </div>
 </div>
 ~~~
 
@@ -1186,3 +1167,151 @@ addBook.jsp
 [![LHOUeJ.png](https://s1.ax1x.com/2022/04/26/LHOUeJ.png)](https://imgtu.com/i/LHOUeJ)
 
 [![LHOBJx.png](https://s1.ax1x.com/2022/04/26/LHOBJx.png)](https://imgtu.com/i/LHOBJx)
+
+# 文件上传
+
+## 需要导入的包
+
+```xml
+<!--文件上传-->
+<dependency>
+   <groupId>commons-fileupload</groupId>
+   <artifactId>commons-fileupload</artifactId>
+   <version>1.3.3</version>
+</dependency>
+<!--servlet-api导入高版本的-->
+<dependency>
+   <groupId>javax.servlet</groupId>
+   <artifactId>javax.servlet-api</artifactId>
+   <version>4.0.1</version>
+</dependency>
+```
+
+## 配置的bean
+
+~~~xml
+<!--文件上传配置-->
+<bean id="multipartResolver"  class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+   <!-- 请求的编码格式，必须和jSP的pageEncoding属性一致，以便正确读取表单的内容，默认为ISO-8859-1 -->
+   <property name="defaultEncoding" value="utf-8"/>
+   <!-- 上传文件大小上限，单位为字节（10485760=10M） -->
+   <property name="maxUploadSize" value="10485760"/>
+   <property name="maxInMemorySize" value="40960"/>
+</bean>
+~~~
+
+## 代码
+
+Controller
+
+~~~java
+package com.kuang.controller;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.commons.CommonsMultipartFile;
+
+import javax.servlet.http.HttpServletRequest;
+import java.io.*;
+
+@Controller
+public class FileController {
+   //@RequestParam("file") 将name=file控件得到的文件封装成CommonsMultipartFile 对象
+   //批量上传CommonsMultipartFile则为数组即可
+   @RequestMapping("/upload")
+   public String fileUpload(@RequestParam("file") CommonsMultipartFile file , HttpServletRequest request) throws IOException {
+
+       //获取文件名 : file.getOriginalFilename();
+       String uploadFileName = file.getOriginalFilename();
+
+       //如果文件名为空，直接回到首页！
+       if ("".equals(uploadFileName)){
+           return "redirect:/index.jsp";
+      }
+       System.out.println("上传文件名 : "+uploadFileName);
+
+       //上传路径保存设置
+       String path = request.getServletContext().getRealPath("/upload");
+       //如果路径不存在，创建一个
+       File realPath = new File(path);
+       if (!realPath.exists()){
+           realPath.mkdir();
+      }
+       System.out.println("上传文件保存地址："+realPath);
+
+       InputStream is = file.getInputStream(); //文件输入流
+       OutputStream os = new FileOutputStream(new File(realPath,uploadFileName)); //文件输出流
+
+       //读取写出
+       int len=0;
+       byte[] buffer = new byte[1024];
+       while ((len=is.read(buffer))!=-1){
+           os.write(buffer,0,len);
+           os.flush();
+      }
+       os.close();
+       is.close();
+       return "redirect:/index.jsp";
+  }
+    /*
+* 采用file.Transto 来保存上传的文件
+*/
+@RequestMapping("/upload2")
+public String  fileUpload2(@RequestParam("file") CommonsMultipartFile file, HttpServletRequest request) throws IOException {
+
+   //上传路径保存设置
+   String path = request.getServletContext().getRealPath("/upload");
+   File realPath = new File(path);
+   if (!realPath.exists()){
+       realPath.mkdir();
+  }
+   //上传文件地址
+   System.out.println("上传文件保存地址："+realPath);
+
+   //通过CommonsMultipartFile的方法直接写文件（注意这个时候）
+   file.transferTo(new File(realPath +"/"+ file.getOriginalFilename()));
+
+   return "redirect:/index.jsp";
+}
+}
+~~~
+
+# 文件下载
+
+## 代码
+
+~~~java
+@RequestMapping(value="/download")
+public String downloads(HttpServletResponse response ,HttpServletRequest request) throws Exception{
+   //要下载的图片地址
+   String  path = request.getServletContext().getRealPath("/upload");
+   String  fileName = "基础语法.jpg";
+
+   //1、设置response 响应头
+   response.reset(); //设置页面不缓存,清空buffer
+   response.setCharacterEncoding("UTF-8"); //字符编码
+   response.setContentType("multipart/form-data"); //二进制传输数据
+   //设置响应头
+   response.setHeader("Content-Disposition",
+           "attachment;fileName="+URLEncoder.encode(fileName, "UTF-8"));
+
+   File file = new File(path,fileName);
+   //2、 读取文件--输入流
+   InputStream input=new FileInputStream(file);
+   //3、 写出文件--输出流
+   OutputStream out = response.getOutputStream();
+
+   byte[] buff =new byte[1024];
+   int index=0;
+   //4、执行 写出操作
+   while((index= input.read(buff))!= -1){
+       out.write(buff, 0, index);
+       out.flush();
+  }
+   out.close();
+   input.close();
+   return null;
+}
+~~~
+
