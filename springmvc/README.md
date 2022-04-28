@@ -1,4 +1,4 @@
-# **SpringMVC**
+# **		SpringMVC**
 
 ## 概述
 
@@ -978,20 +978,6 @@ spring-mvc.xml
 Controller
 
 ~~~java
-package com.kk.controller;
-
-import com.kk.pojo.Books;
-import com.kk.service.BookService;
-import com.kk.service.BookServiceImpl;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-
-import java.util.List;
-
 @Controller
 @RequestMapping("/book")
 public class BookController {
@@ -1007,37 +993,31 @@ public class BookController {
         return "allBook";
     }
     @RequestMapping("/toAddBook")
-    public String toAddPaper() {
+    public String toAddBook(){
         return "addBook";
     }
     @RequestMapping("/addBook")
-    public String addPaper(Books books) {
-        System.out.println(books);
+    public String addBook(Books books){
         bookService.addBook(books);
         return "redirect:/book/allBook";
     }
     @RequestMapping("/del/{bookId}")
-    public String deleteBook(@PathVariable("bookId") int id) {
+    public String delBook(@PathVariable("bookId") int id){
         bookService.deleteBookById(id);
         return "redirect:/book/allBook";
     }
     @RequestMapping("/toUpdateBook")
     public String toUpdateBook(Model model, int id) {
         Books books = bookService.queryBookById(id);
-        System.out.println(books);
         model.addAttribute("book",books );
         return "updateBook";
     }
 
     @RequestMapping("/updateBook")
-    public String updateBook(Model model, Books book) {
-        System.out.println(book);
+    public String updateBook(Books book) {
         bookService.updateBook(book);
-        Books books = bookService.queryBookById(book.getBookID());
-        model.addAttribute("books", books);
         return "redirect:/book/allBook";
     }
-}
     @RequestMapping("/queryBook")
     public String queryBook(String queryBookName, Model model){
         Books books = bookService.queryBookByName(queryBookName);
@@ -1050,6 +1030,7 @@ public class BookController {
         model.addAttribute("list",list);
         return "allBook";
     }
+}
 ~~~
 
 ## 前端
