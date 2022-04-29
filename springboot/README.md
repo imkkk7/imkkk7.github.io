@@ -131,7 +131,7 @@ Registrar.class 作用：将主启动类的所在包及包下面所有子包里�
 
 自动配置真正实现是从classpath中搜寻所有的META-INF/spring.factories配置文件 ，并将其中对应的 org.springframework.boot.autoconfigure. 包下的配置项，通过反射实例化为对应标注了 @Configuration的JavaConfig形式的IOC容器配置类 ， 然后将这些都汇总成为一个实例并加载到IOC容器中。
 
-### **@Import({AutoConfigurationImportSelector.class}) **
+### @Import({AutoConfigurationImportSelector.class}) 
 
 ：给容器导入组件 ；
 
