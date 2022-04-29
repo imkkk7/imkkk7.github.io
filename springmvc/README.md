@@ -1,4 +1,4 @@
-# **		SpringMVC**
+# SpringMVC
 
 ## 概述
 
