@@ -258,6 +258,15 @@ pets1: [cat,dog,pig]
 
 Springboot中可以用@validated来校验数据，如果数据异常则会统一抛出异常，方便异常中心统一处理。我们这里来写个注解让我们的name只能支持Email格式；
 
+首先需要导入依赖
+
+```xml
+    <dependency> 
+        <groupId>org.springframework.boot</groupId> 
+        <artifactId>spring-boot-starter-validation</artifactId> 
+    </dependency>
+```
+
 ~~~java
 
 @Component //注册bean
@@ -316,3 +325,271 @@ public class Person {
 - @Email 验证是否是邮件地址，如果为null,不进行验证，算通过验证。
 - @ScriptAssert(lang= ,script=, alias=)
 - @URL(protocol=,host=, port=,regexp=, flags=)
+
+## 多环境切换
+
+profile是Spring对不同环境提供不同配置功能的支持，可以通过激活不同的环境版本，实现快速切换环境；
+
+### 多配置文件
+
+我们在主配置文件编写的时候，文件名可以是 application-{profile}.properties/yml , 用来指定多个环境版本；
+
+**例如：**
+
+application-test.properties 代表测试环境配置
+
+application-dev.properties 代表开发环境配置
+
+但是Springboot并不会直接启动这些配置文件，它**默认使用application.properties主配置文件**；
+
+我们需要通过一个配置来选择需要激活的环境：
+
+```properties
+#比如在配置文件中指定使用dev环境，我们可以通过设置不同的端口号进行测试；#我们启动SpringBoot，就可以看到已经切换到dev下的配置了；spring.profiles.active=dev
+```
+
+### yaml的多文档块
+
+选择激活哪一个环境
+
+```properties
+server:
+  port: 8081
+#选择要激活那个环境块
+spring:  
+  profiles:    
+    active: prod
+    
+---
+server:
+  port: 8083
+spring:  
+  profiles: dev #配置环境的名称
+
+---
+server:  
+  port: 8084
+spring:  
+  profiles: prod  #配置环境的名称
+```
+
+**注意：如果yml和properties同时都配置了端口，并且没有激活其他环境 ， 默认会使用properties配置文件的！**
+
+springboot 启动会扫描以下位置的application.properties或者application.yml文件作为Spring boot的默认配置文件：
+
+```xml
+优先级1：项目路径下的config文件夹配置文件
+优先级2：项目路径下配置文件
+优先级3：资源路径下的config文件夹配置文件
+优先级4：资源路径下配置文件
+```
+
+优先级由高到底，高优先级的配置会覆盖低优先级的配置；
+
+### 拓展，运维小技巧
+
+指定位置加载配置文件
+
+我们还可以通过spring.config.location来改变默认的配置文件位置
+
+项目打包好以后，我们可以使用命令行参数的形式，启动项目的时候来指定配置文件的新位置；
+
+这种情况，一般是后期运维做的多，相同配置，外部指定的配置文件优先级最高
+
+命令行代码
+
+例：
+
+~~~cmd
+java -jar spring-boot-config.jar --spring.config.location=F:/application.properties
+~~~
+
+## 自动配置原理
+
+### 分析
+
+以**HttpEncodingAutoConfiguration（Http编码自动配置）**为例
+
+~~~java
+
+//表示这是一个配置类，和以前编写的配置文件一样，也可以给容器中添加组件；
+@Configuration 
+
+//启动指定类的ConfigurationProperties功能；
+  //进入这个HttpProperties查看，将配置文件中对应的值和HttpProperties绑定起来；
+  //并把HttpProperties加入到ioc容器中
+@EnableConfigurationProperties({HttpProperties.class}) 
+
+//Spring底层@Conditional注解
+  //根据不同的条件判断，如果满足指定的条件，整个配置类里面的配置就会生效；
+  //这里的意思就是判断当前应用是否是web应用，如果是，当前配置类生效
+@ConditionalOnWebApplication(
+    type = Type.SERVLET
+)
+
+//判断当前项目有没有这个类CharacterEncodingFilter；SpringMVC中进行乱码解决的过滤器；
+@ConditionalOnClass({CharacterEncodingFilter.class})
+
+//判断配置文件中是否存在某个配置：spring.http.encoding.enabled；
+  //如果不存在，判断也是成立的
+  //即使我们配置文件中不配置pring.http.encoding.enabled=true，也是默认生效的；
+@ConditionalOnProperty(
+    prefix = "spring.http.encoding",
+    value = {"enabled"},
+    matchIfMissing = true
+)
+
+public class HttpEncodingAutoConfiguration {
+    //他已经和SpringBoot的配置文件映射了
+    private final Encoding properties;
+    //只有一个有参构造器的情况下，参数的值就会从容器中拿
+    public HttpEncodingAutoConfiguration(HttpProperties properties) {
+        this.properties = properties.getEncoding();
+    }
+    
+    //给容器中添加一个组件，这个组件的某些值需要从properties中获取
+    @Bean
+    @ConditionalOnMissingBean //判断容器没有这个组件？
+    public CharacterEncodingFilter characterEncodingFilter() {
+        CharacterEncodingFilter filter = new OrderedCharacterEncodingFilter();
+        filter.setEncoding(this.properties.getCharset().name());
+        filter.setForceRequestEncoding(this.properties.shouldForce(org.springframework.boot.autoconfigure.http.HttpProperties.Encoding.Type.REQUEST));
+        filter.setForceResponseEncoding(this.properties.shouldForce(org.springframework.boot.autoconfigure.http.HttpProperties.Encoding.Type.RESPONSE));
+        return filter;
+    }
+    //。。。。。。。
+}
+~~~
+
+**总结 ：根据当前不同的条件判断，决定这个配置类是否生效！**
+
+- 一但这个配置类生效；这个配置类就会给容器中添加各种组件；
+- 这些组件的属性是从对应的properties类中获取的，这些类里面的每一个属性又是和配置文件绑定的；
+- 所有在配置文件中能配置的属性都是在xxxxProperties类中封装着；
+- 配置文件能配置什么就可以参照某个功能对应的这个属性类
+
+~~~java
+//从配置文件中获取指定的值和bean的属性进行绑定
+@ConfigurationProperties(prefix = "spring.http") 
+public class HttpProperties {
+    // .....
+}
+~~~
+
+从spring.http中获取设置的配置
+
+**总结：**
+
+1、SpringBoot启动会加载大量的自动配置类
+
+2、我们看我们需要的功能有没有在SpringBoot默认写好的自动配置类当中；
+
+3、我们再来看这个自动配置类中到底配置了哪些组件；（只要我们要用的组件存在在其中，我们就不需要再手动配置了）
+
+4、给容器中自动配置类添加组件的时候，会从properties类中获取某些属性。我们只需要在配置文件中指定这些属性的值即可；
+
+**xxxxAutoConfigurartion：自动配置类；**给容器中添加组件
+
+**xxxxProperties:封装配置文件中相关属性；**
+
+### 了解：@Conditional
+
+了解完自动装配的原理后，我们来关注一个细节问题，**自动配置类必须在一定的条件下才能生效；**
+
+**@Conditional派生注解（Spring注解版原生的@Conditional作用）**
+
+作用：必须是@Conditional指定的条件成立，才给容器中添加组件，配置配里面的所有内容才生效；
+
+[![OSY9AJ.md.png](https://s1.ax1x.com/2022/04/30/OSY9AJ.md.png)](https://imgtu.com/i/OSY9AJ)
+
+## SpringBoot Web开发
+
+### 静态资源导入
+
+总结：
+
+1.在springboot，我们可以使用以下方式处理静态资源
+
+- webjars  <!--localhost：8080/webjars/-->
+
+- public，static，/**，resources      <!--localhost：8080/-->
+
+  [![OSLExH.png](https://s1.ax1x.com/2022/04/30/OSLExH.png)](https://imgtu.com/i/OSLExH)
+
+2.优先级：resources>static(默认)>public
+
+### 首页和图标定制
+
+源码：
+
+```java
+final class WelcomePageRouterFunctionFactory {
+
+   private final String staticPathPattern;
+
+	private final Resource welcomePage;
+
+	private final boolean welcomePageTemplateExists;
+
+	WelcomePageRouterFunctionFactory(TemplateAvailabilityProviders templateAvailabilityProviders,
+			ApplicationContext applicationContext, String[] staticLocations, String staticPathPattern) {
+		this.staticPathPattern = staticPathPattern;
+		this.welcomePage = getWelcomePage(applicationContext, staticLocations);
+		this.welcomePageTemplateExists = welcomeTemplateExists(templateAvailabilityProviders, applicationContext);
+	}
+
+	private Resource getWelcomePage(ResourceLoader resourceLoader, String[] staticLocations) {
+		return Arrays.stream(staticLocations).map((location) -> getIndexHtml(resourceLoader, location))
+				.filter(this::isReadable).findFirst().orElse(null);
+	}
+
+	private Resource getIndexHtml(ResourceLoader resourceLoader, String location) {
+		return resourceLoader.getResource(location + "index.html");
+	}
+    ...
+}
+```
+
+写入一个index.html就可以定制首页
+
+**注意：**
+
+虽然写入一个index.html就可以定制首页，但是在template目录下的所有页面，只能通过Controller来跳转，这个需要模板引擎的支持
+
+在2.1.7版本在application.properties中关闭默认图标
+
+```properties
+spring.mvc.favicon.enabled = false
+```
+
+再导入图片名为favicon.ico即可设置图标
+
+### ThyMeleaf
+
+首先导入依赖
+
+~~~xml
+<dependency>
+      <groupId>org.thymeleaf</groupId>
+      <artifactId>thymeleaf-spring5</artifactId>
+      <version>3.0.11.RELEASE</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.thymeleaf.extras</groupId>
+      <artifactId>thymeleaf-extras-java8time</artifactId>
+      <version>3.0.4.RELEASE</version>
+      <scope>compile</scope>
+    </dependency>
+~~~
+
+必须在templates目录下并且以.html结尾的文件
+
+网页需要导入约束
+
+~~~html
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+~~~
+
