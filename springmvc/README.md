@@ -1296,3 +1296,8 @@ public String downloads(HttpServletResponse response ,HttpServletRequest request
 }
 ~~~
 
+# 简易的图书管理代码
+
+网盘链接：https://pan.baidu.com/s/1M0yt2tk_OYRjMEAULdhxVQ
+
+提取码：ojba

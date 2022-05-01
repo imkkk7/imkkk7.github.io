@@ -283,7 +283,7 @@ public class Person {
 
 常见的参数：
 
-### **空检查**
+### 空检查
 
 - @Null 验证对象是否为null
 - @NotNull 验证对象是否不为null, 无法查检长度为0的字符串
@@ -300,7 +300,7 @@ public class Person {
 - @Size(min=, max=) 验证对象（Array,Collection,Map,String）长度是否在给定的范围之内
 - @Length(min=, max=) Validates that the annotated string is between min and max included.
 
-### **日期检查**
+### 日期检查
 
 - @Past 验证 Date 和 Calendar 对象是否在当前时间之前，验证成立的话被注释的元素一定是一个过去的日期
 - @Future 验证 Date 和 Calendar 对象是否在当前时间之后 ，验证成立的话被注释的元素一定是一个将来的日期
@@ -308,7 +308,7 @@ public class Person {
   - regexp:正则表达式
   - flags: 指定 Pattern.Flag 的数组，表示正则表达式的相关选项。
 
-### **数值检查**
+### 数值检查
 
 建议使用在Stirng,Integer类型，不建议使用在int类型上，因为表单值为””时无法转换为int，但可以转换为Stirng为””，Integer为null
 
@@ -564,6 +564,8 @@ spring.mvc.favicon.enabled = false
 
 再导入图片名为favicon.ico即可设置图标
 
+[![O94954.png](https://s1.ax1x.com/2022/05/01/O94954.png)](https://imgtu.com/i/O94954)
+
 ### ThyMeleaf
 
 首先导入依赖
@@ -591,5 +593,142 @@ spring.mvc.favicon.enabled = false
 <html lang="en" xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
       xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+~~~
+
+### SpringMVC拓展
+
+~~~java
+@Configuration
+public class MyMvcConfig implements WebMvcConfigurer {
+    //视图跳转
+    @Override
+    public void addViewControllers(ViewControllerRegistry registry){
+        registry.addViewController("/kk").setViewName("KK");
+    }
+}
+~~~
+
+写入修改自己所需要的配置，SpringBoot会自动帮我们导入
+
+**注意：**SpringBoot进行的是导入而不是替换
+
+## 员工管理系统
+
+### 首页实现
+
+~~~java
+    public void addViewControllers(ViewControllerRegistry registry){
+        registry.addViewController("/").setViewName("index");
+        registry.addViewController("/index.html").setViewName("index");
+    }
+~~~
+
+
+
+### 国际化
+
+中英文切换：
+
+写入Properties
+
+[![OCePBR.md.png](https://s1.ax1x.com/2022/05/01/OCePBR.md.png)](https://imgtu.com/i/OCePBR)
+
+页面传入参数
+
+~~~html
+			<a class="btn btn-sm" th:href="@{/index.html(l='zh_CN')}">中文</a>
+			<a class="btn btn-sm" th:href="@{/index.html(l='en_US')}">English</a>
+~~~
+
+
+
+书写地区解析器
+
+~~~java
+public class MyLocaleResolver implements LocaleResolver {
+    //解析请求
+    @Override
+    public Locale resolveLocale(HttpServletRequest request) {
+        String l = request.getParameter("l");;
+        Locale locale = Locale.getDefault();
+        //如果请求的链接携带了国际化的参数
+        if (!StringUtils.isEmpty(l)){
+            //zh_CN
+            String[] s = l.split("_");
+           locale =  new Locale(s[0],s[1]);
+        }
+        return locale;
+    }
+    @Override
+    public void setLocale(HttpServletRequest request, HttpServletResponse response, Locale locale) {
+    }
+}
+~~~
+
+注册bean
+
+~~~java
+    @Bean
+    public LocaleResolver localeResolver(){
+        return new MyLocaleResolver();
+    }
+~~~
+
+### 登录功能实现
+
+Controller
+
+~~~java
+@Controller
+public class LoginController {
+    @RequestMapping("/user/login")
+    public String login(@RequestParam("username") String username, @RequestParam("password") String password, Model model){
+        //具体的业务
+        if(!StringUtils.isEmpty(username)&&"123456".equals(password)){
+            return "dashboard";
+        }else{
+            model.addAttribute("msg", "用户名或密码错误");
+            return "index";
+        }
+    }
+}
+~~~
+
+index页面实现
+
+~~~html
+            <!--如果msg不为空显示-->
+			<p style="color: red" th:text="${msg}" th:if="${not #strings.isEmpty(msg)}"></p>
+~~~
+
+### 登录功能拦截器
+
+LoginHandlerInterceptor.java
+
+~~~java
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(new LoginHandlerInterceptor()).addPathPatterns("/**").excludePathPatterns("/index.html","/","/user/login","/css/*","/js/**","/img/**","/main.html");
+    }
+~~~
+
+MyMvcConfig.java
+
+~~~java
+public class LoginHandlerInterceptor implements HandlerInterceptor {
+    @Override
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        //登录成功之后，应该有用户的session
+        Object loginUser = request.getSession().getAttribute("loginUser");
+        if(loginUser==null){
+            request.setAttribute("msg","没有权限，请先登录");
+            request.getRequestDispatcher("/index.html").forward(request,response);
+            return  false;
+        }
+        else {
+            return true;
+        }
+        }
+}
 ~~~
 
