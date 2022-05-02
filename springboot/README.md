@@ -732,3 +732,493 @@ public class LoginHandlerInterceptor implements HandlerInterceptor {
 }
 ~~~
 
+### 展示员工列表
+
+如何实现点击后高亮？
+
+传递一个参数后进行判断
+
+~~~html
+			<div th:replace="~{commons/commons.html::sidebar(active = 'main.html')}"></div>
+~~~
+
+
+
+~~~html
+<!DOCTYPE html>
+<!-- saved from url=(0052)http://getbootstrap.com/docs/4.0/examples/dashboard/ -->
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+	  xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+	  xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+		<meta name="description" content="">
+		<meta name="author" content="">
+
+		<title>Dashboard Template for Bootstrap</title>
+		<!-- Bootstrap core CSS -->
+		<link th:href="@{/css/bootstrap.min.css}" rel="stylesheet">
+
+		<!-- Custom styles for this template -->
+		<link th:href="@{/css/dashboard.css}"  rel="stylesheet">
+		<style type="text/css">
+			/* Chart.js */
+			
+			@-webkit-keyframes chartjs-render-animation {
+				from {
+					opacity: 0.99
+				}
+				to {
+					opacity: 1
+				}
+			}
+			
+			@keyframes chartjs-render-animation {
+				from {
+					opacity: 0.99
+				}
+				to {
+					opacity: 1
+				}
+			}
+			
+			.chartjs-render-monitor {
+				-webkit-animation: chartjs-render-animation 0.001s;
+				animation: chartjs-render-animation 0.001s;
+			}
+		</style>
+	</head>
+
+	<body>
+	<div th:replace="~{commons/commons.html::topbar}"></div>
+
+		<div class="container-fluid">
+			<div class="row">
+				<div th:replace="~{commons/commons.html::sidebar(active = 'list.html')}"></div>
+
+				<main role="main" class="col-md-9 ml-sm-auto col-lg-10 pt-3 px-4">
+					<h2><a class="btn btn-sm btn-success" th:href="@{/emp}">添加员工</a></h2>
+					<div class="table-responsive">
+						<table class="table table-striped table-sm">
+							<thead>
+								<tr>
+									<th>id</th>
+									<th>lastName</th>
+									<th>email</th>
+									<th>gender</th>
+									<th>department</th>
+									<th>date</th>
+									<th>操作</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr th:each="emp:${emps}">
+									<td th:text="${emp.getId()}"></td>
+									<td th:text="${emp.getLastName()}"></td>
+									<td th:text="${emp.getEmail()}"></td>
+									<td th:text="${emp.getGender()==0?'女':'男'}"></td>
+									<td th:text="${emp.department.getDepartmentName()}"></td>
+									<td th:text="${emp.getDate()}"></td>
+									<td>
+										<a class="btn btn-sm btn-primary" th:href="@{/emp/}+${emp.getId()}">编辑</a>
+										<a class="btn btn-sm btn-primary" th:href="@{/emp/del/}+${emp.getId()}">删除</a>
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</main>
+			</div>
+		</div>
+
+		<!-- Bootstrap core JavaScript
+    ================================================== -->
+		<!-- Placed at the end of the document so the pages load faster -->
+		<script type="text/javascript" th:src="@{/js/jquery-3.2.1.slim.min.js}" ></script>
+		<script type="text/javascript" th:src="@{js/popper.min.js}" ></script>
+		<script type="text/javascript" th:src="@{/js/bootstrap.min.js}" ></script>
+
+
+		<!-- Icons -->
+		<script type="text/javascript" th:src="@{/js/feather.min.js}" ></script>
+		<script>
+			feather.replace()
+		</script>
+
+		<!-- Graphs -->
+		<script type="text/javascript" th:src="@{/js/Chart.min.js}" ></script>
+		<script>
+			var ctx = document.getElementById("myChart");
+			var myChart = new Chart(ctx, {
+				type: 'line',
+				data: {
+					labels: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+					datasets: [{
+						data: [15339, 21345, 18483, 24003, 23489, 24092, 12034],
+						lineTension: 0,
+						backgroundColor: 'transparent',
+						borderColor: '#007bff',
+						borderWidth: 4,
+						pointBackgroundColor: '#007bff'
+					}]
+				},
+				options: {
+					scales: {
+						yAxes: [{
+							ticks: {
+								beginAtZero: false
+							}
+						}]
+					},
+					legend: {
+						display: false,
+					}
+				}
+			});
+		</script>
+
+	</body>
+
+</html>
+~~~
+
+### 添加员工
+
+~~~html
+<!DOCTYPE html>
+<!-- saved from url=(0052)http://getbootstrap.com/docs/4.0/examples/dashboard/ -->
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Dashboard Template for Bootstrap</title>
+    <!-- Bootstrap core CSS -->
+    <link th:href="@{/css/bootstrap.min.css}" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link th:href="@{/css/dashboard.css}"  rel="stylesheet">
+    <style type="text/css">
+        /* Chart.js */
+
+        @-webkit-keyframes chartjs-render-animation {
+            from {
+                opacity: 0.99
+            }
+            to {
+                opacity: 1
+            }
+        }
+
+        @keyframes chartjs-render-animation {
+            from {
+                opacity: 0.99
+            }
+            to {
+                opacity: 1
+            }
+        }
+
+        .chartjs-render-monitor {
+            -webkit-animation: chartjs-render-animation 0.001s;
+            animation: chartjs-render-animation 0.001s;
+        }
+    </style>
+</head>
+
+<body>
+<div th:replace="~{commons/commons.html::topbar}"></div>
+
+<div class="container-fluid">
+    <div class="row">
+        <div th:replace="~{commons/commons.html::sidebar(active = 'list.html')}"></div>
+
+        <main role="main" class="col-md-9 ml-sm-auto col-lg-10 pt-3 px-4">
+            <h2><a class="btn btn-sm btn-success" th:href="@{/emp}"> 添加员工</a></h2>
+            <div class="table-responsive">
+                <form th:action="@{/emp}" method="post">
+                    <div class="form-group">
+                        <label>LastName</label>
+                        <input type="text" class="form-control" placeholder="KeKe">
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" class="form-control" placeholder="670038154@qq.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Gender</label><br>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="gender" value="1">
+                            <label class="form-check-label">男</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="gender" value="0">
+                            <label class="form-check-label">女</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>department</label>
+                        <select class="form-control" name="department.id">
+                            <option th:each="dept:${departments}" th:text="${dept.getDepartmentName()}" th:value="${dept.getId()}"></option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Birth</label>
+                        <input type="text" class="form-control" placeholder="嘤嘤嘤">
+                    </div>
+                    <button type="submit" class="btn btn-primary">添加</button>
+                </form>
+            </div>
+        </main>
+    </div>
+</div>
+
+<!-- Bootstrap core JavaScript
+================================================== -->
+<!-- Placed at the end of the document so the pages load faster -->
+<script type="text/javascript" th:src="@{/js/jquery-3.2.1.slim.min.js}" ></script>
+<script type="text/javascript" th:src="@{js/popper.min.js}" ></script>
+<script type="text/javascript" th:src="@{/js/bootstrap.min.js}" ></script>
+
+
+<!-- Icons -->
+<script type="text/javascript" th:src="@{/js/feather.min.js}" ></script>
+<script>
+    feather.replace()
+</script>
+
+<!-- Graphs -->
+<script type="text/javascript" th:src="@{/js/Chart.min.js}" ></script>
+<script>
+    var ctx = document.getElementById("myChart");
+    var myChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+            datasets: [{
+                data: [15339, 21345, 18483, 24003, 23489, 24092, 12034],
+                lineTension: 0,
+                backgroundColor: 'transparent',
+                borderColor: '#007bff',
+                borderWidth: 4,
+                pointBackgroundColor: '#007bff'
+            }]
+        },
+        options: {
+            scales: {
+                yAxes: [{
+                    ticks: {
+                        beginAtZero: false
+                    }
+                }]
+            },
+            legend: {
+                display: false,
+            }
+        }
+    });
+</script>
+
+</body>
+
+</html>
+~~~
+
+Controller
+
+~~~java
+    @GetMapping("/emp")
+    public String toAddpage(Model model){
+        Collection<Department> departments = departmentdao.getDepartments();
+        model.addAttribute("departments",departments);
+        return  "emp/add";
+    }
+    @PostMapping("/emp")
+    public String addEmp(Employee employee){
+        System.out.println("save"+employee);
+        employeeDao.save(employee);
+        return "redirect:/emps";
+    }
+~~~
+
+**注：使用ThyMeleaf要注意加上th：**
+
+### 修改员工
+
+Controller
+
+~~~java
+    @GetMapping("/emp/{id}")
+    public String toUpdateEmp(@PathVariable("id")Integer id,Model model){
+        Employee employees = employeeDao.getEmployeeById(id);
+        model.addAttribute("emps",employees);
+        Collection<Department> departments = departmentdao.getDepartments();
+        model.addAttribute("departments",departments);
+        return "emp/update";
+    }
+    @PostMapping("/updateEmp")
+    public String udpEmp(Employee employee){
+        employeeDao.save(employee);
+        return "redirect:/emps";
+    }
+~~~
+
+update.html
+
+~~~html
+<!DOCTYPE html>
+<!-- saved from url=(0052)http://getbootstrap.com/docs/4.0/examples/dashboard/ -->
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      xmlns:shiro="http://www.pollix.at/thymeleaf/shiro">
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Dashboard Template for Bootstrap</title>
+    <!-- Bootstrap core CSS -->
+    <link th:href="@{/css/bootstrap.min.css}" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link th:href="@{/css/dashboard.css}"  rel="stylesheet">
+    <style type="text/css">
+        /* Chart.js */
+
+        @-webkit-keyframes chartjs-render-animation {
+            from {
+                opacity: 0.99
+            }
+            to {
+                opacity: 1
+            }
+        }
+
+        @keyframes chartjs-render-animation {
+            from {
+                opacity: 0.99
+            }
+            to {
+                opacity: 1
+            }
+        }
+
+        .chartjs-render-monitor {
+            -webkit-animation: chartjs-render-animation 0.001s;
+            animation: chartjs-render-animation 0.001s;
+        }
+    </style>
+</head>
+
+<body>
+<div th:replace="~{commons/commons.html::topbar}"></div>
+
+<div class="container-fluid">
+    <div class="row">
+        <div th:replace="~{commons/commons.html::sidebar(active ='list.html')}"></div>
+
+        <main role="main" class="col-md-9 ml-sm-auto col-lg-10 pt-3 px-4">
+            <h2><a class="btn btn-sm btn-success" th:href="@{/emp}"> 添加员工</a></h2>
+            <div class="table-responsive">
+                <form th:action="@{/updateEmp}" method="post">
+                    <input type="hidden" name="id" th:value="${emps.getId()}">
+                    <div class="form-group">
+                        <label>LastName</label>
+                        <input th:value="${emps.getLastName()}" type="text" name="lastName"  class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input th:value="${emps.getEmail()}" type="email" name="email"  class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Gender</label><br>
+                        <div class="form-check form-check-inline">
+                            <input th:checked="${emps.getGender()==1}" class="form-check-input" type="radio" name="gender" value="1">
+                            <label class="form-check-label">男</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input th:checked="${emps.getGender()==0}" class="form-check-input" type="radio" name="gender" value="0">
+                            <label class="form-check-label">女</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>department</label>
+                        <select class="form-control" name="department.id">
+                            <option th:selected="${dept.getId()==emps.getDepartment().getId()}" th:each="dept:${departments}" th:text="${dept.getDepartmentName()}" th:value="${dept.getId()}"></option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Birth</label>
+                        <input th:value="${#dates.format(emps.getDate(),'yyyy-MM-dd')}" type="text" class="form-control">
+                    </div>
+                    <button type="submit" class="btn btn-primary">修改</button>
+                </form>
+            </div>
+        </main>
+    </div>
+</div>
+
+
+<!-- Bootstrap core JavaScript
+================================================== -->
+<!-- Placed at the end of the document so the pages load faster -->
+<script type="text/javascript" th:src="@{/js/jquery-3.2.1.slim.min.js}" ></script>
+<script type="text/javascript" th:src="@{js/popper.min.js}" ></script>
+<script type="text/javascript" th:src="@{/js/bootstrap.min.js}" ></script>
+
+
+<!-- Icons -->
+<script type="text/javascript" th:src="@{/js/feather.min.js}" ></script>
+<script>
+    feather.replace()
+</script>
+
+<!-- Graphs -->
+<script type="text/javascript" th:src="@{/js/Chart.min.js}" ></script>
+<script>
+    var ctx = document.getElementById("myChart");
+    var myChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+            datasets: [{
+                data: [15339, 21345, 18483, 24003, 23489, 24092, 12034],
+                lineTension: 0,
+                backgroundColor: 'transparent',
+                borderColor: '#007bff',
+                borderWidth: 4,
+                pointBackgroundColor: '#007bff'
+            }]
+        },
+        options: {
+            scales: {
+                yAxes: [{
+                    ticks: {
+                        beginAtZero: false
+                    }
+                }]
+            },
+            legend: {
+                display: false,
+            }
+        }
+    });
+</script>
+
+</body>
+
+</html>
+~~~
+
+### 删除员工
+
+与修改员工大同小异，不再赘述
