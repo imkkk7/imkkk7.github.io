@@ -51,8 +51,6 @@ public class SpringbootApplication {
 }
 ```
 
-但是**一个简单的启动类并不简单！**我们来分析一下这些注解都干了什么
-
 
 
 ### @SpringBootApplication
