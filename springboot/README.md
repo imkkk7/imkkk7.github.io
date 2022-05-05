@@ -1220,3 +1220,70 @@ update.html
 ### 删除员工
 
 与修改员工大同小异，不再赘述
+
+## 整合JDBC
+
+数据库连接
+
+~~~java
+@Autowired
+    DataSource dataSource;
+~~~
+
+想笑~~~
+
+默认的数据源是hikari
+
+时区报错加上
+
+~~~java
+serverTimezone=UTC
+~~~
+
+xxxxTemplate是SpringBoot已经配置好的bean
+
+简易的增删改查
+
+~~~java
+@RestController
+public class JDBCController {
+    @Autowired
+    JdbcTemplate jdbcTemplate;
+    @Autowired
+    DataSource dataSource;
+    //查询数据库的所有信息
+    @GetMapping("/userList")
+    public List<Map<String,Object>> userList(){
+        String sql = "select * from [student]";
+        List<Map<String, Object>> list_map = jdbcTemplate.queryForList(sql);
+        return list_map;
+    }
+    @GetMapping("/addUser")
+    public String addUser(){
+        String sql = "insert into [user](id,name,pwd) values(4,'小明',150329)";
+        jdbcTemplate.update(sql);
+        return "update-ok";
+    }
+    @GetMapping("/delUser")
+    public String delUser(){
+        String sql = "delete from [user] where id = 4";
+        jdbcTemplate.update(sql);
+        return "del-ok";
+    }
+    @GetMapping("/udpUser/{id}")
+    public String udpUser(@PathVariable("id") int id){
+        String sql = "update [user] set name = ?,pwd=? where id ="+id;
+        Object[] objects = new Object[2];
+        objects[0] = "小明2";
+        objects[1] = "zzzzzz";
+        jdbcTemplate.update(sql,objects);
+        return "udp-ok";
+    }
+}
+~~~
+
+[![OVYfZd.png](https://s1.ax1x.com/2022/05/04/OVYfZd.png)](https://imgtu.com/i/OVYfZd)
+
+**注意，SpringBoot的启动类要放在最外面，包含所有的类**
+
+否则会出现404错误
