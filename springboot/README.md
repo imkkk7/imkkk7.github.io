@@ -1287,3 +1287,201 @@ public class JDBCController {
 **注意，SpringBoot的启动类要放在最外面，包含所有的类**
 
 否则会出现404错误
+
+## 整合Druid数据源
+
+~~~yml
+spring:
+  datasource:
+    username: sa
+    password: 123
+    url: jdbc:sqlserver://localhost;database=mybaits
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+    type: com.alibaba.druid.pool.DruidDataSource
+    initialSize: 5
+    minIdle: 5
+    maxActive: 20
+    maxWait: 60000
+    timeBetweenEvictionRunsMillis: 60000
+    minEvictableIdleTimeMillis: 300000
+    validationQuery: SELECT 1
+    testWhileIdle: true
+    testOnBorrow: false
+    testOnReturn: false
+    poolPreparedStatements: true
+      #配置监控统计拦截的filters，stat:监控统计、log4j：日志记录、wall：防御sql注入
+      #如果允许时报错  java.lang.ClassNotFoundException: org.apache.log4j.Priority
+      #则导入 log4j 依赖即可，Maven 地址：https://mvnrepository.com/artifact/log4j/log4j
+    filters: stat,wall,log4j
+    maxPoolPreparedStatementPerConnectionSize: 20
+    useGlobalDataSourceStat: true
+    connectionProperties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=500
+~~~
+
+DruidConfigration
+
+~~~java
+package com.kk.config;
+
+import com.alibaba.druid.pool.DruidDataSource;
+import com.alibaba.druid.support.http.StatViewServlet;
+import com.alibaba.druid.support.http.WebStatFilter;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.boot.web.servlet.ServletRegistrationBean;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import javax.servlet.Filter;
+import javax.sql.DataSource;
+import java.util.HashMap;
+import java.util.Map;
+
+@Configuration
+public class DruidConfig {
+    @ConfigurationProperties(prefix = "spring.datasource")
+    @Bean
+    public DataSource dataSource(){
+        return new DruidDataSource();
+    }
+    //后台监控
+    @Bean
+    public ServletRegistrationBean statViewServlet(){
+        ServletRegistrationBean<StatViewServlet> bean = new ServletRegistrationBean<>(new StatViewServlet(), "/druid/*");
+        //后台需要有人登录，账号密码配置
+        HashMap<String,String> init = new HashMap<>();
+        //增加配置
+        init.put("loginUsername", "admin");
+        init.put("loginPassword", "123456");
+        //允许谁可以访问
+        init.put("allow", "localhost");
+        bean.setInitParameters(init);
+        return bean;
+    }
+    //filter
+    @Bean
+    public FilterRegistrationBean webStatFilter(){
+        FilterRegistrationBean<Filter> bean = new FilterRegistrationBean<>();
+        bean.setFilter(new WebStatFilter());
+        Map<String, String> initParamters = new HashMap<>();
+        initParamters.put("exclusions", "*.js,*.css,/druid/*");
+        bean.setInitParameters(initParamters);
+        return bean;
+    }
+}
+
+~~~
+
+## 整合Mybatis框架
+
+总依赖：
+
+~~~xml
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jdbc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-web</artifactId>
+            </dependency>
+            <dependency>
+                <groupId>com.microsoft.sqlserver</groupId>
+                <artifactId>mssql-jdbc</artifactId>
+                <version>8.1.0.jre8-preview</version>
+            </dependency>
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <optional>true</optional>
+            </dependency>
+            <dependency>
+                <groupId>org.mybatis.spring.boot</groupId>
+                <artifactId>mybatis-spring-boot-starter</artifactId>
+                <version>2.1.1</version>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba</groupId>
+                <artifactId>druid</artifactId>
+                <version>1.2.9</version>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba</groupId>
+                <artifactId>druid-spring-boot-starter</artifactId>
+                <version>1.2.9</version>
+            </dependency>
+            <!-- https://mvnrepository.com/artifact/log4j/log4j -->
+            <dependency>
+                <groupId>log4j</groupId>
+                <artifactId>log4j</artifactId>
+                <version>1.2.17</version>
+            </dependency>
+    </dependencies>
+~~~
+
+对应的Mapper映射文件
+
+~~~xml
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.kk.mapper.UserMapper">
+</mapper>
+~~~
+
+
+
+资源过滤
+
+~~~xml
+<resources>
+    <resource>
+        <directory>src/main/java</directory>
+        <includes>
+            <include>**/*.xml</include>
+        </includes>
+        <filtering>true</filtering>
+    </resource>
+</resources>
+~~~
+
+application.properties
+
+~~~properties
+spring.datasource.username=sa
+spring.datasource.password=123
+spring.datasource.url=jdbc:sqlserver://localhost;database=mybaits
+spring.datasource.driver-class-name=com.microsoft.sqlserver.jdbc.SQLServerDriver
+mybatis.type-aliases-package=com.kk.springbootmybatis.pojo
+mybatis.mapper-locations=classpath:Mybatis/mapper/*.xml
+spring.datasource.type=com.alibaba.druid.pool.DruidDataSource
+spring.datasource.druid.initial-size=5
+spring.datasource.druid.min-idle=5
+spring.datasource.druid.max-active=20
+spring.datasource.druid.max-wait=60000
+spring.datasource.druid.time-between-eviction-runs-millis=300000
+spring.datasource.druid.validation-query=SELECT 1
+spring.datasource.druid.test-while-idle=true
+spring.datasource.druid.test-on-borrow=false
+spring.datasource.druid.test-on-return=false
+spring.datasource.druid.pool-prepared-statements=true
+spring.datasource.druid.filters=stat,wall,log4j
+spring.datasource.druid.max-pool-prepared-statement-per-connection-size=20
+spring.datasource.druid.use-global-data-source-stat=true
+spring.datasource.druid.connection-properties=druid.stat.mergeSql=true;druid.stat.slowSqlMillis=500
+~~~
+
