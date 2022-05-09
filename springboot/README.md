@@ -1485,3 +1485,77 @@ spring.datasource.druid.use-global-data-source-stat=true
 spring.datasource.druid.connection-properties=druid.stat.mergeSql=true;druid.stat.slowSqlMillis=500
 ~~~
 
+## SpringSecurity
+
+（安全）
+
+在web开发中，安全第一位！过滤器，拦截器
+
+做网站：安全应该在什么时候考虑？在设计之初就应该进行考虑
+
+因为忽略了安全就会：
+
+- 漏洞，隐私泄露
+- 架构一旦确定要改变很多代码
+
+Shiro、SpringSecurity：很像~除了类不一样、名字不一样；
+
+认证、授权 （vip1，2，3）
+
+- 功能权限
+- 访问权限
+- 菜单权限（不同用户登录菜单不同）
+- 拦截器、过滤器：会产生大量的原生代码~冗余 
+
+~~~xml
+        <dependency>
+            <groupId>org.thymeleaf.extras</groupId>
+            <artifactId>thymeleaf-extras-springsecurity5</artifactId>
+            <version>3.0.4.RELEASE</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+~~~
+
+需要导入的两个Starter
+
+~~~java
+@EnableWebSecurity
+public class SecurityConfig extends WebSecurityConfigurerAdapter {
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+         http.authorizeHttpRequests()
+                 .antMatchers("/").permitAll()//首页所有人可以进行访问
+                 .antMatchers("/level1/**").hasRole("vip1")
+                 .antMatchers("/level2/**").hasRole("vip2")
+                 .antMatchers("/level3/**").hasRole("vip3");
+         //没有权限会跳到登录页面
+         http.formLogin();
+    }
+    //认证
+
+    @Override
+    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+        auth.inMemoryAuthentication()
+                .withUser("kk").password("123456").roles("vip2","vip3")
+                .and()
+                .withUser("root").password("root").roles("vip1","vip2","vip3")
+                .and()
+                .withUser("guest").password("123456").roles("vip1");
+    }
+}
+~~~
+
+要是报错PasswordEncode
+
+需要将密码进行加密
+
+在SpringSecurity5.0以上新增了很多加密算法
+
+new XXXpasswordencode（）就可以运行
+
+但是密码一般从数据库中读取
+
+我们所使用的方法不是常规方法不推荐学习
