@@ -1503,9 +1503,14 @@ Shiro、SpringSecurity：很像~除了类不一样、名字不一样；
 认证、授权 （vip1，2，3）
 
 - 功能权限
+
 - 访问权限
+
 - 菜单权限（不同用户登录菜单不同）
+
 - 拦截器、过滤器：会产生大量的原生代码~冗余 
+
+  ### Starter
 
 ~~~xml
         <dependency>
@@ -1519,9 +1524,19 @@ Shiro、SpringSecurity：很像~除了类不一样、名字不一样；
         </dependency>
 ~~~
 
-需要导入的两个Starter
+### 安全措施
 
 ~~~java
+package com.kk.security.config;
+
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityConfiguration;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.AbstractPasswordEncoder;
+
 @EnableWebSecurity
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Override
@@ -1533,19 +1548,23 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                  .antMatchers("/level3/**").hasRole("vip3");
          //没有权限会跳到登录页面
          http.formLogin();
+         //开启了注销功能
+        http.logout().logoutSuccessUrl("/");
     }
     //认证
 
     @Override
     protected void configure(AuthenticationManagerBuilder auth) throws Exception {
         auth.inMemoryAuthentication()
-                .withUser("kk").password("123456").roles("vip2","vip3")
+                .withUser("kk").password(new BCryptPasswordEncoder().encode("123456")).roles("vip2","vip3")
                 .and()
-                .withUser("root").password("root").roles("vip1","vip2","vip3")
+                .withUser("root").password(new BCryptPasswordEncoder().encode("root")).roles("vip1","vip2","vip3")
                 .and()
-                .withUser("guest").password("123456").roles("vip1");
+                .withUser("guest").password(new BCryptPasswordEncoder().encode("123456")).roles("vip1");
     }
+
 }
+
 ~~~
 
 要是报错PasswordEncode
@@ -1559,3 +1578,492 @@ new XXXpasswordencode（）就可以运行
 但是密码一般从数据库中读取
 
 我们所使用的方法不是常规方法不推荐学习
+
+### JDBC的权限认证
+
+[![OtgFkq.png](https://s1.ax1x.com/2022/05/10/OtgFkq.png)](https://imgtu.com/i/OtgFkq)
+
+### thymeleaf和security整合导入包
+
+~~~html
+xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity5"
+~~~
+
+### 前端页面修改
+
+1. 修改导航栏，增加认证判断
+
+2. ```html
+   <!--登录注销-->
+   <div class="right menu">
+   
+      <!--如果未登录-->
+      <div sec:authorize="!isAuthenticated()">
+          <a class="item" th:href="@{/login}">
+              <i class="address card icon"></i> 登录
+          </a>
+      </div>
+   
+      <!--如果已登录-->
+      <div sec:authorize="isAuthenticated()">
+          <a class="item">
+              <i class="address card icon"></i>
+             用户名：<span sec:authentication="principal.username"></span>
+             角色：<span sec:authentication="principal.authorities"></span>
+          </a>
+      </div>
+   
+      <div sec:authorize="isAuthenticated()">
+          <a class="item" th:href="@{/logout}">
+              <i class="address card icon"></i> 注销
+          </a>
+      </div>
+   </div>
+   ```
+
+ps：如果登录 ， 导航栏显示用户名：注销
+
+如果未登录 ，导航栏显示登录
+
+剩余角色认证页面显示如下
+
+~~~html
+<!-- sec:authorize="hasRole('vip1')" -->
+<div class="column" sec:authorize="hasRole('vip1')">
+   <div class="ui raised segment">
+       <div class="ui">
+           <div class="content">
+               <h5 class="content">Level 1</h5>
+               <hr>
+               <div><a th:href="@{/level1/1}"><i class="bullhorn icon"></i> Level-1-1</a></div>
+               <div><a th:href="@{/level1/2}"><i class="bullhorn icon"></i> Level-1-2</a></div>
+               <div><a th:href="@{/level1/3}"><i class="bullhorn icon"></i> Level-1-3</a></div>
+           </div>
+       </div>
+   </div>
+</div>
+
+<div class="column" sec:authorize="hasRole('vip2')">
+   <div class="ui raised segment">
+       <div class="ui">
+           <div class="content">
+               <h5 class="content">Level 2</h5>
+               <hr>
+               <div><a th:href="@{/level2/1}"><i class="bullhorn icon"></i> Level-2-1</a></div>
+               <div><a th:href="@{/level2/2}"><i class="bullhorn icon"></i> Level-2-2</a></div>
+               <div><a th:href="@{/level2/3}"><i class="bullhorn icon"></i> Level-2-3</a></div>
+           </div>
+       </div>
+   </div>
+</div>
+
+<div class="column" sec:authorize="hasRole('vip3')">
+   <div class="ui raised segment">
+       <div class="ui">
+           <div class="content">
+               <h5 class="content">Level 3</h5>
+               <hr>
+               <div><a th:href="@{/level3/1}"><i class="bullhorn icon"></i> Level-3-1</a></div>
+               <div><a th:href="@{/level3/2}"><i class="bullhorn icon"></i> Level-3-2</a></div>
+               <div><a th:href="@{/level3/3}"><i class="bullhorn icon"></i> Level-3-3</a></div>
+           </div>
+       </div>
+   </div>
+</div><!-- sec:authorize="hasRole('vip1')" -->
+<div class="column" sec:authorize="hasRole('vip1')">
+   <div class="ui raised segment">
+       <div class="ui">
+           <div class="content">
+               <h5 class="content">Level 1</h5>
+               <hr>
+               <div><a th:href="@{/level1/1}"><i class="bullhorn icon"></i> Level-1-1</a></div>
+               <div><a th:href="@{/level1/2}"><i class="bullhorn icon"></i> Level-1-2</a></div>
+               <div><a th:href="@{/level1/3}"><i class="bullhorn icon"></i> Level-1-3</a></div>
+           </div>
+       </div>
+   </div>
+</div>
+
+<div class="column" sec:authorize="hasRole('vip2')">
+   <div class="ui raised segment">
+       <div class="ui">
+           <div class="content">
+               <h5 class="content">Level 2</h5>
+               <hr>
+               <div><a th:href="@{/level2/1}"><i class="bullhorn icon"></i> Level-2-1</a></div>
+               <div><a th:href="@{/level2/2}"><i class="bullhorn icon"></i> Level-2-2</a></div>
+               <div><a th:href="@{/level2/3}"><i class="bullhorn icon"></i> Level-2-3</a></div>
+           </div>
+       </div>
+   </div>
+</div>
+
+<div class="column" sec:authorize="hasRole('vip3')">
+   <div class="ui raised segment">
+       <div class="ui">
+           <div class="content">
+               <h5 class="content">Level 3</h5>
+               <hr>
+               <div><a th:href="@{/level3/1}"><i class="bullhorn icon"></i> Level-3-1</a></div>
+               <div><a th:href="@{/level3/2}"><i class="bullhorn icon"></i> Level-3-2</a></div>
+               <div><a th:href="@{/level3/3}"><i class="bullhorn icon"></i> Level-3-3</a></div>
+           </div>
+       </div>
+   </div>
+</div>
+~~~
+
+有哪些功能的权限才能显示哪些页面
+
+### 记住我
+
+```java
+http.rememberMe();
+```
+
+记住我功能使用的是session和cookie，默认保存时间是两周
+
+## Shiro
+
+### Shiro的快速开始
+
+#### 导入依赖
+
+~~~xml
+  <dependencies>
+    <!-- https://mvnrepository.com/artifact/org.apache.shiro/shiro-core -->
+    <dependency>
+      <groupId>org.apache.shiro</groupId>
+      <artifactId>shiro-core</artifactId>
+      <version>1.9.0</version>
+    </dependency>
+    <dependency>
+    <groupId>org.slf4j</groupId>
+    <artifactId>jcl-over-slf4j</artifactId>
+    <version>1.7.36</version>
+  </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-log4j12</artifactId>
+      <version>1.7.36</version>
+    </dependency>
+    <dependency>
+      <groupId>log4j</groupId>
+      <artifactId>log4j</artifactId>
+      <version>1.2.17</version>
+    </dependency>
+  </dependencies>
+~~~
+
+#### recourses配置
+
+##### log4j.properties
+
+```properties
+log4j.rootLogger=INFO,stdout
+
+log4j.appender.stdout=org.apache.log4j.ConsoleAppender
+log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
+log4j.appender.stdout.layout.ConversionPattern=%d %p [%c] - %m %n
+# General Apache libraries
+log4j.logger.org.apache=WARN
+#Spring
+log4j.logger.org.apache.shiro=INFO
+#Disable verbose logging
+log4j.logger.org.apache.shiro.util.ThreadContext=WARN
+log4j.logger.org.apache.shiro.cache.ehcache.EhCache=WARN
+```
+
+##### log4j2.xml
+
+~~~xml
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one
+  ~ or more contributor license agreements.  See the NOTICE file
+  ~ distributed with this work for additional information
+  ~ regarding copyright ownership.  The ASF licenses this file
+  ~ to you under the Apache License, Version 2.0 (the
+  ~ "License"); you may not use this file except in compliance
+  ~ with the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  -->
+
+<Configuration name="ConfigTest" status="ERROR" monitorInterval="5">
+    <!--
+      ~ Licensed to the Apache Software Foundation (ASF) under one
+      ~ or more contributor license agreements.  See the NOTICE file
+      ~ distributed with this work for additional information
+      ~ regarding copyright ownership.  The ASF licenses this file
+      ~ to you under the Apache License, Version 2.0 (the
+      ~ "License"); you may not use this file except in compliance
+      ~ with the License.  You may obtain a copy of the License at
+      ~
+      ~     http://www.apache.org/licenses/LICENSE-2.0
+      ~
+      ~ Unless required by applicable law or agreed to in writing,
+      ~ software distributed under the License is distributed on an
+      ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+      ~ KIND, either express or implied.  See the License for the
+      ~ specific language governing permissions and limitations
+      ~ under the License.
+      -->
+
+    <Appenders>
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+        </Console>
+    </Appenders>
+    <Loggers>
+        <Logger name="org.springframework" level="warn" additivity="false">
+            <AppenderRef ref="Console"/>
+        </Logger>
+        <Logger name="org.apache" level="warn" additivity="false">
+            <AppenderRef ref="Console"/>
+        </Logger>
+        <Logger name="net.sf.ehcache" level="warn" additivity="false">
+            <AppenderRef ref="Console"/>
+        </Logger>
+        <Logger name="org.apache.shiro.util.ThreadContext" level="warn" additivity="false">
+            <AppenderRef ref="Console"/>
+        </Logger>
+        <Root level="info">
+            <AppenderRef ref="Console"/>
+        </Root>
+    </Loggers>
+</Configuration>
+~~~
+
+##### shiro.ini
+
+~~~ini
+#
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+#
+# =============================================================================
+# Quickstart INI Realm configuration
+#
+# For those that might not understand the references in this file, the
+# definitions are all based on the classic Mel Brooks' film "Spaceballs". ;)
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Users and their assigned roles
+#
+# Each line conforms to the format defined in the
+# org.apache.shiro.realm.text.TextConfigurationRealm#setUserDefinitions JavaDoc
+# -----------------------------------------------------------------------------
+[users]
+# user 'root' with password 'secret' and the 'admin' role
+root = secret, admin
+# user 'guest' with the password 'guest' and the 'guest' role
+guest = guest, guest
+# user 'presidentskroob' with password '12345' ("That's the same combination on
+# my luggage!!!" ;)), and role 'president'
+presidentskroob = 12345, president
+# user 'darkhelmet' with password 'ludicrousspeed' and roles 'darklord' and 'schwartz'
+darkhelmet = ludicrousspeed, darklord, schwartz
+# user 'lonestarr' with password 'vespa' and roles 'goodguy' and 'schwartz'
+lonestarr = vespa, goodguy, schwartz
+
+# -----------------------------------------------------------------------------
+# Roles with assigned permissions
+# 
+# Each line conforms to the format defined in the
+# org.apache.shiro.realm.text.TextConfigurationRealm#setRoleDefinitions JavaDoc
+# -----------------------------------------------------------------------------
+[roles]
+# 'admin' role has all permissions, indicated by the wildcard '*'
+admin = *
+# The 'schwartz' role can do anything (*) with any lightsaber:
+schwartz = lightsaber:*
+# The 'goodguy' role is allowed to 'drive' (action) the winnebago (type) with
+# license plate 'eagle5' (instance specific id)
+goodguy = winnebago:drive:eagle5
+
+~~~
+
+#### Quickstrat.java
+
+~~~java
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+import org.apache.shiro.SecurityUtils;
+import org.apache.shiro.authc.*;
+import org.apache.shiro.config.IniSecurityManagerFactory;
+import org.apache.shiro.mgt.SecurityManager;
+import org.apache.shiro.session.Session;
+import org.apache.shiro.subject.Subject;
+import org.apache.shiro.util.Factory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+
+/**
+ * Simple Quickstart application showing how to use Shiro's API.
+ *
+ * @since 0.9 RC2
+ */
+public class Quickstart {
+
+    private static final transient Logger log = LoggerFactory.getLogger(Quickstart.class);
+
+
+    public static void main(String[] args) {
+
+        // The easiest way to create a Shiro SecurityManager with configured
+        // realms, users, roles and permissions is to use the simple INI config.
+        // We'll do that by using a factory that can ingest a .ini file and
+        // return a SecurityManager instance:
+
+        // Use the shiro.ini file at the root of the classpath
+        // (file: and url: prefixes load from files and urls respectively):
+        Factory<SecurityManager> factory = new IniSecurityManagerFactory("classpath:shiro.ini");
+        SecurityManager securityManager = factory.getInstance();
+
+        // for this simple example quickstart, make the SecurityManager
+        // accessible as a JVM singleton.  Most applications wouldn't do this
+        // and instead rely on their container configuration or web.xml for
+        // webapps.  That is outside the scope of this simple quickstart, so
+        // we'll just do the bare minimum so you can continue to get a feel
+        // for things.
+        SecurityUtils.setSecurityManager(securityManager);
+
+        // Now that a simple Shiro environment is set up, let's see what you can do:
+
+        // get the currently executing user:
+        Subject currentUser = SecurityUtils.getSubject();
+
+        // Do some stuff with a Session (no need for a web or EJB container!!!)
+        Session session = currentUser.getSession();
+        session.setAttribute("someKey", "aValue");
+        String value = (String) session.getAttribute("someKey");
+        if (value.equals("aValue")) {
+            log.info("Retrieved the correct value! [" + value + "]");
+        }
+
+        // let's login the current user so we can check against roles and permissions:
+        if (!currentUser.isAuthenticated()) {
+            UsernamePasswordToken token = new UsernamePasswordToken("lonestarr", "vespa");
+            token.setRememberMe(true);
+            try {
+                currentUser.login(token);
+            } catch (UnknownAccountException uae) {
+                log.info("There is no user with username of " + token.getPrincipal());
+            } catch (IncorrectCredentialsException ice) {
+                log.info("Password for account " + token.getPrincipal() + " was incorrect!");
+            } catch (LockedAccountException lae) {
+                log.info("The account for username " + token.getPrincipal() + " is locked.  " +
+                        "Please contact your administrator to unlock it.");
+            }
+            // ... catch more exceptions here (maybe custom ones specific to your application?
+            catch (AuthenticationException ae) {
+                //unexpected condition?  error?
+            }
+        }
+
+        //say who they are:
+        //print their identifying principal (in this case, a username):
+        log.info("User [" + currentUser.getPrincipal() + "] logged in successfully.");
+
+        //test a role:
+        if (currentUser.hasRole("schwartz")) {
+            log.info("May the Schwartz be with you!");
+        } else {
+            log.info("Hello, mere mortal.");
+        }
+
+        //test a typed permission (not instance-level)
+        if (currentUser.isPermitted("lightsaber:wield")) {
+            log.info("You may use a lightsaber ring.  Use it wisely.");
+        } else {
+            log.info("Sorry, lightsaber rings are for schwartz masters only.");
+        }
+
+        //a (very powerful) Instance Level permission:
+        if (currentUser.isPermitted("winnebago:drive:eagle5")) {
+            log.info("You are permitted to 'drive' the winnebago with license plate (id) 'eagle5'.  " +
+                    "Here are the keys - have fun!");
+        } else {
+            log.info("Sorry, you aren't allowed to drive the 'eagle5' winnebago!");
+        }
+
+        //all done - log out!
+        currentUser.logout();
+
+        System.exit(0);
+    }
+}
+
+~~~
+
+### Subject分析
+
+subject相关的方法（从quickStrat中获得）
+
+~~~java
+//获取当前的用户对象suject
+Subject currentUser = SecurityUtils.getSubject();
+
+//通过当前用户拿到session
+Session session = currentUser.getSession();
+
+//认证
+currentUser.isAuthenticated()
+
+//获取认证标识
+currentUser.getPrincipal()
+
+//授予当前用户角色
+currentUser.hasRole("schwartz")
+
+//获得当前用户的权限，根据给定的参数不同，获得的东西不同
+currentUser.isPermitted("winnebago:drive:eagle5")
+
+//注销
+//all done - log out!
+currentUser.logout();
+
+//结束
+System.exit(0);
+~~~
+
