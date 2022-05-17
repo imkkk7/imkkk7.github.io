@@ -8,3 +8,5 @@
 * - [git](git/)
 * Linux
 * - [linux](linux/)
+* Redis
+* - [redis](redis/)
