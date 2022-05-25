@@ -2305,6 +2305,51 @@ Shiro太老了，找不到新版视频学习，全是bug
 
 不学了！
 
+## 整合Redis
+
+~~~java
+@SpringBootTest
+class RedisSpringbootApplicationTests {
+    @Autowired
+    private RedisTemplate redisTemplate;
+    @Test
+    void contextLoads() {
+        //opsForValue 操作字符串类似String
+        //opsForList 操作List 类似List
+        //...
+        redisTemplate.opsForValue().set("name","kk");
+        System.out.println(redisTemplate.opsForValue().get("name"));
+        //获取redis的连接对象
+        RedisConnection connection = redisTemplate.getConnectionFactory().getConnection();
+        connection.flushDb();
+
+    }
+    @Test
+    @Bean
+    void test(){
+    RedisTemplate<String, Object> template = new RedisTemplate<String, Object>();
+    template.setConnectionFactory(factory);// 序列化配置
+    Jackson2JsonRedisSerializer jackson2JsonRedisSerializer = new Jackson2JsonRedisSerializer(Object.class);
+    ObjectMapper om = new ObjectMapper();
+    om.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
+    om.enableDefaultTyping(ObjectMapper.DefaultTyping.NON_FINAL);
+    jackson2JsonRedisSerializer.setObjectMapper(om);
+    StringRedisSerializer stringRedisSerializer = new StringRedisSerializer();
+    // key采用String的序列化方式
+    template.setKeySerializer(stringRedisSerializer);
+    template.setHashKeySerializer(stringRedisSerializer);
+    template.setValueSerializer(jackson2JsonRedisSerializer);
+    template.setHashValueSerializer(jackson2JsonRedisSerializer);
+    template.afterPropertiesSet();
+    return template;
+}
+}
+~~~
+
+## Dubbo以及Zookeeper
+
+
+
 ## 日常操作
 
 ### 使用foreach
@@ -2435,7 +2480,7 @@ public class flatMapTest {
  
         //遍历用户列表
         userList.forEach(System.out::println);
-    }
+    }	
 }
 ~~~
 
@@ -2497,7 +2542,7 @@ public class limitAndSkipTest {
 使用 noneMatch(T -> boolean) 流中是否没有元素匹配给定的 `T -> boolean` 条件。
 
 ~~~java
-public class matchTest {
+	public class matchTest {
     public static void main(String[] args) {
  
         List<User> userList = new ArrayList<User>();
@@ -2523,5 +2568,38 @@ public class matchTest {
  
     }
 }
+~~~
+
+
+
+
+
+以MP的表为例
+
+~~~java
+    @Test
+    void contextLoads() {
+        //参数是一个Wrapper，条件构造器
+        List<mybatisplus> users = userMapper.selectList(null);
+        users.forEach(user -> System.out.println(user));
+        users.forEach(System.out::println);
+        boolean result = users.stream().anyMatch(user -> user.getName().equals("Jone"));
+        boolean result1 = users.stream().allMatch(user ->user.getName().equals("Jone"));
+        boolean result2 = users.stream().noneMatch(user -> user.getName().equals("Jone"));
+        System.out.println(result);
+        System.out.println(result1);
+        System.out.println(result2);
+        mybatisplus user = users.stream().filter(u ->u.getName().equals("Jone")).findAny().orElse(null);
+        mybatisplus user1 = users.stream().filter(u ->u.getName().equals("Jone")).findAny().orElse(null);
+        System.out.println(user);
+        System.out.println(user1);
+        List<String> nameList=users.stream().map(mybatisplus::getName).collect(Collectors.toList());
+        nameList.forEach(n -> System.out.println(n));
+        List<Integer> ageList=users.stream().map(mybatisplus::getAge).distinct().collect(Collectors.toList());
+        ageList.forEach(a-> System.out.println(a));
+        List<mybatisplus> limitandskiplist=users.stream().skip(1).limit(3).collect(Collectors.toList());
+        limitandskiplist.forEach(las-> System.out.println(las));
+    }
+
 ~~~
 
