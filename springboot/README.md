@@ -2304,3 +2304,224 @@ public class UserRealm extends AuthorizingRealm {
 Shiro太老了，找不到新版视频学习，全是bug
 
 不学了！
+
+## 日常操作
+
+### 使用foreach
+
+~~~java
+public class forEachTest {
+    public static void main(String[] args) {
+ 
+        List<User> userList = new ArrayList<User>();
+        userList.add(new User(1, "康熙爷", "男", 32, "总裁办", BigDecimal.valueOf(3000)));
+        userList.add(new User(2, "和珅", "男", 30, "财务部", BigDecimal.valueOf(1800)));
+        userList.add(new User(3, "颜如玉", "女", 20, "人事部", BigDecimal.valueOf(1700)));
+        userList.add(new User(4, "纪晓岚", "男", 29, "研发部", BigDecimal.valueOf(2000)));
+        userList.add(new User(5, "杜小月", "女", 23, "人事部", BigDecimal.valueOf(1500)));
+ 
+        //1.使用 forEach() 遍历列表数据
+        System.out.println("======================使用 forEach() 遍历列表数据 方法1======================");
+        userList.forEach(System.out::println);
+        System.out.println("======================使用 forEach() 遍历列表数据 方法2======================");
+        userList.forEach(user -> System.out.println(user));
+        
+    }
+}
+~~~
+
+### 使用过滤器
+
+~~~java
+public class filterTest {
+    public static void main(String[] args) {
+        List<User> userList = new ArrayList<User>();
+        userList.add(new User(1, "康熙爷", "男", 32, "总裁办", BigDecimal.valueOf(3000)));
+        userList.add(new User(2, "和珅", "男", 30, "财务部", BigDecimal.valueOf(1800)));
+        userList.add(new User(3, "颜如玉", "女", 20, "人事部", BigDecimal.valueOf(1700)));
+        userList.add(new User(4, "纪晓岚", "男", 29, "研发部", BigDecimal.valueOf(2000)));
+        userList.add(new User(5, "杜小月", "女", 23, "人事部", BigDecimal.valueOf(1500)));
+ 
+        /**
+         * 2.filter(T -> boolean)
+         * 使用 filter() 过滤列表数据。
+         * 【示例】获取部门为“研发部”的用户列表
+         * */
+        System.out.println("======================使用 filter() 过滤列表数据======================");
+        userList.stream().filter(user -> user.getDept().equals("人事部")).collect(Collectors.toList()).forEach(System.out::println);
+    }
+}
+~~~
+
+### 使用findxxx
+
+~~~java
+public class findAnytTest {
+    public static void main(String[] args) {
+ 
+        List<User> userList = new ArrayList<User>();
+        userList.add(new User(1, "康熙爷", "男", 32, "总裁办", BigDecimal.valueOf(3000)));
+        userList.add(new User(2, "和珅", "男", 30, "财务部", BigDecimal.valueOf(1800)));
+        userList.add(new User(3, "颜如玉", "女", 20, "人事部", BigDecimal.valueOf(1700)));
+        userList.add(new User(4, "纪晓岚", "男", 29, "研发部", BigDecimal.valueOf(2000)));
+        userList.add(new User(5, "杜小月", "女", 23, "人事部", BigDecimal.valueOf(1500)));
+ 
+        /**
+         * 3.findAny() 和 findFirst()
+         * 使用 findAny() 和 findFirst() 获取第一条数据。
+         *【示例】获取用户名称为“杜小月”的用户信息，如果未找到则返回null
+         *【示例】获取用户名称为“杜小月”的用户信息，如果未找到则返回null
+         *
+         * PS:findFirst()和findAny都是获取列表中的第一条数据，但是fandAny()操作发，返回的元素是不确定的，对于同一个列表多次调用findAny()有可能会返回不同的值。
+         * 使用findAny()是为了更高效的性能。如果是数据较少，串行的情况下，一般都会返回第一个结果，如果是并行(parallelStream并行流)的情况下，那就不能确保是第一个。
+         * */
+        System.out.println("======================使用 findAny() 和 findFirst() 获取第一条数据 ======================");
+        User user = userList.stream().filter(u -> u.getName().equals("杜小月")).findAny().orElse(null);
+        System.out.println("存在杜小月的用户信息:" + user);
+        User user1 = userList.stream().filter(u -> u.getName().equals("戴沾")).findFirst().orElse(null);
+        System.out.println("不存在戴沾的用户信息:" + user1);
+ 
+    }
+}
+~~~
+
+### **map(T -> R) 和flatMap(T -> stream)**
+
+​    使用map()将流中的每一个元素T映射为R(类似类型转换)。
+
+​    使用flatMap()将流中的每一个元素T映射为一个流，再把每一个流连接成一个流。
+
+使用map()方法获取用户列表中的名称列。
+
+~~~java
+public class mapTest {
+    public static void main(String[] args) {
+ 
+        List<User> userList = new ArrayList<User>();
+        userList.add(new User(1, "康熙爷", "男", 32, "总裁办", BigDecimal.valueOf(3000)));
+        userList.add(new User(2, "和珅", "男", 30, "财务部", BigDecimal.valueOf(1800)));
+        userList.add(new User(3, "颜如玉", "女", 20, "人事部", BigDecimal.valueOf(1700)));
+        userList.add(new User(4, "纪晓岚", "男", 29, "研发部", BigDecimal.valueOf(2000)));
+        userList.add(new User(5, "杜小月", "女", 23, "人事部", BigDecimal.valueOf(1500)));
+        
+        /**
+         * 4.map(T -> R) 和 flatMap(T -> Stream)
+         * 使用 map() 将流中的每一个元素 T 映射为 R（类似类型转换）。
+         * 使用 flatMap() 将流中的每一个元素 T 映射为一个流，再把每一个流连接成为一个流。
+         * 【示例】使用 map() 方法获取用户列表中的名称列
+         * */
+        System.out.println("======================使用 map() 将流中的每一个元素 T 映射为 R（类似类型转换）======================");
+        List<String> nameList = userList.stream().map(User::getName).collect(Collectors.toList());
+        nameList.forEach(System.out::println);
+    }
+}
+~~~
+
+使用flatMap()将流中的每一个元素链接成为一个流。
+
+~~~java
+public class flatMapTest {
+    public static void main(String[] args) {
+        //创建用户列表
+        List<String> userList = new ArrayList<String>();
+        userList.add("康熙爷、莫愁、颜如玉");
+        userList.add("纪晓岚、杜小月、和珅");
+ 
+        //分割用户列表，使用flatMap()将流中的每一个元素链接成一个流。
+        userList = userList.stream()
+                .map(city -> city.split("、"))
+                .flatMap(Arrays::stream)
+                .collect(Collectors.toList());
+ 
+        //遍历用户列表
+        userList.forEach(System.out::println);
+    }
+}
+~~~
+
+### **distinct() 去重**
+
+~~~java
+public class distinctTest {
+    public static void main(String[] args) {
+ 
+        List<User> userList = new ArrayList<User>();
+        userList.add(new User(1, "康熙爷", "男", 32, "总裁办", BigDecimal.valueOf(3000)));
+        userList.add(new User(2, "和珅", "男", 30, "财务部", BigDecimal.valueOf(1800)));
+        userList.add(new User(3, "颜如玉", "女", 20, "人事部", BigDecimal.valueOf(1700)));
+        userList.add(new User(4, "纪晓岚", "男", 29, "研发部", BigDecimal.valueOf(2000)));
+        userList.add(new User(5, "杜小月", "女", 23, "人事部", BigDecimal.valueOf(1500)));
+ 
+        List<String> deptList = userList.stream().map(User::getDept).distinct().collect(Collectors.toList());
+        deptList.forEach(System.out::println);
+    }
+}
+~~~
+
+### **limit(long n)和skip(long n)**
+
+​    limit(long n)方法用于返回前n条数据，skip()方法用于跳过前n条数据。
+
+获取用户列表，跳过第1条数据后的前3条数据。
+
+~~~java
+public class limitAndSkipTest {
+    public static void main(String[] args) {
+ 
+        List<User> userList = new ArrayList<User>();
+        userList.add(new User(1, "康熙爷", "男", 32, "总裁办", BigDecimal.valueOf(3000)));
+        userList.add(new User(2, "和珅", "男", 30, "财务部", BigDecimal.valueOf(1800)));
+        userList.add(new User(3, "颜如玉", "女", 20, "人事部", BigDecimal.valueOf(1700)));
+        userList.add(new User(4, "纪晓岚", "男", 29, "研发部", BigDecimal.valueOf(2000)));
+        userList.add(new User(5, "杜小月", "女", 23, "人事部", BigDecimal.valueOf(1500)));
+ 
+        List<User> limitAndSkipList = userList.stream().skip(1).limit(3).collect(Collectors.toList());
+        limitAndSkipList.forEach(System.out::println);
+ 
+    }
+}
+~~~
+
+### **判断方法**
+
+**1.anyMatch(T -> boolean)**
+
+使用anyMatch(T -> boolean)判断流中是否有一个元素匹配给定的T -> boolean条件。
+
+**2.allMatch(T -> boolean)**
+
+使用 allMatch(T -> boolean) 判断流中是否所有元素都匹配给定的 `T -> boolean` 条件。
+
+**3.noneMatch(T -> boolean)**
+
+使用 noneMatch(T -> boolean) 流中是否没有元素匹配给定的 `T -> boolean` 条件。
+
+~~~java
+public class matchTest {
+    public static void main(String[] args) {
+ 
+        List<User> userList = new ArrayList<User>();
+        userList.add(new User(1, "康熙爷", "男", 32, "总裁办", BigDecimal.valueOf(3000)));
+        userList.add(new User(2, "和珅", "男", 30, "财务部", BigDecimal.valueOf(1800)));
+        userList.add(new User(3, "颜如玉", "女", 20, "人事部", BigDecimal.valueOf(1700)));
+        userList.add(new User(4, "纪晓岚", "男", 29, "研发部", BigDecimal.valueOf(2000)));
+        userList.add(new User(5, "杜小月", "女", 23, "人事部", BigDecimal.valueOf(1500)));
+ 
+        //判断用户列表中是否存在名称为“杜小月”的数据
+        boolean result = userList.stream().anyMatch(user -> user.getName().equals("杜小月"));
+ 
+        //判断用户名称是否都包含“杜小月”字段
+        boolean result2 = userList.stream().allMatch(user -> user.getName().equals("杜小月"));
+ 
+        //判断用户名称是否存在不包含“杜小月”字段
+        boolean result3 = userList.stream().noneMatch(user -> user.getName().equals("杜小月"));
+ 
+        //打印结果
+        System.out.println("result=" + result);
+        System.out.println("result2=" + result2);
+        System.out.println("result3=" + result3);
+ 
+    }
+}
+~~~
+
